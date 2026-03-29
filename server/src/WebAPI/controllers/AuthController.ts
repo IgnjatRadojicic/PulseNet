@@ -1,104 +1,90 @@
 import { Request, Response, Router } from 'express';
 import { IAuthService } from '../../Domain/services/auth/IAuthService';
-import jwt from "jsonwebtoken";
+import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
+import { validateLogin, validateRegister } from '../validators/AuthValidator';
+import jwt from 'jsonwebtoken';
 
 export class AuthController {
-  private router: Router;
-  private authService: IAuthService;
+    private router: Router;
+    private authService: IAuthService;
 
-  constructor(authService: IAuthService) {
-    this.router = Router();
-    this.authService = authService;
-    this.initializeRoutes();
-  }
-
-  private initializeRoutes(): void {
-    this.router.post('/auth/login', this.prijava.bind(this));
-    this.router.post('/auth/register', this.registracija.bind(this));
-  }
-
-  /**
-   * POST /api/v1/auth/login
-   * Prijava korisnika
-   */
-  private async prijava(req: Request, res: Response): Promise<void> {
-    try {
-      const { korisnickoIme, lozinka } = req.body;
-
-      // TODO: Validacija input parametara
-      // const rezultat = authPrijavaValidator(korisnickoIme, lozinka);
-
-      // if (!rezultat.uspesno) {
-      //   res.status(400).json({ success: false, message: rezultat.poruka });
-      //   return;
-      // }
-
-      const result = await this.authService.prijava(korisnickoIme, lozinka);
-
-      // Proveravamo da li je prijava uspešna
-      if (result.id !== 0) {
-        // Kreiranje jwt tokena
-        const token = jwt.sign(
-          { 
-            id: result.id, 
-            korisnickoIme: result.korisnickoIme, 
-            uloga: result.uloga,
-          }, process.env.JWT_SECRET ?? "", { expiresIn: '6h' });
-
-        res.status(200).json({success: true, message: 'Uspešna prijava', data: token});
-        return;
-      } else {
-        res.status(401).json({success: false, message: 'Неисправно корисничко име или лозинка'});
-        return;
-      }
-    } catch (error) {
-      console.log(error);
-      res.status(500).json({success: false, message: error});
+    constructor(authService: IAuthService) {
+        this.router = Router();
+        this.authService = authService;
+        this.initializeRoutes();
     }
-  }
 
-  /**
-   * POST /api/v1/auth/register
-   * Registracija novog korisnika
-   */
-  private async registracija(req: Request, res: Response): Promise<void> {
-    try {
-      const { korisnickoIme, lozinka, uloga } = req.body;
-      
-      // TODO: Validator podataka za registraciju
-      // const rezultat = authRegistracijaValidator(korisnickoIme, lozinka);
-
-      // if (!rezultat.uspesno) {
-      //   res.status(400).json({ success: false, message: rezultat.poruka });
-      //   return;
-      // }
-
-      const result = await this.authService.registracija(korisnickoIme, uloga, lozinka);
-      
-      // Proveravamo da li je registracija uspešna
-      if (result.id !== 0) {
-        // Kreiranje jwt tokena
-        const token = jwt.sign(
-          { 
-            id: result.id, 
-            korisnickoIme: result.korisnickoIme, 
-            uloga: result.uloga,
-          }, process.env.JWT_SECRET ?? "", { expiresIn: '6h' });
-
-
-        res.status(201).json({success: true, message: 'Uspešna registracija', data: token});
-      } else {
-        res.status(401).json({success: false, message: 'Регистрација није успела. Корисничко име већ постоји.', });
-      }
-    } catch (error) {
-      res.status(500).json({success: false, message: error});
+    private initializeRoutes(): void {
+        this.router.post('/auth/login', this.login.bind(this));
+        this.router.post('/auth/register', this.register.bind(this));
+        this.router.post('/auth/logout', authenticate, this.logout.bind(this));
     }
-  }
 
-  /**
-   * Getter za router
-   */
-  public getRouter(): Router {
-    return this.router;
-  }
+    private async login(req: Request, res: Response): Promise<void> {
+        try {
+            const { username, password } = req.body;
+
+            const validation = validateLogin(username, password);
+            if (!validation.valid) {
+                res.status(400).json({ success: false, message: validation.message });
+                return;
+            }
+
+            const result = await this.authService.login(username, password);
+            if (!result.success || !result.data) {
+                res.status(result.statusCode ?? 401).json({ success: false, message: result.message });
+                return;
+            }
+
+            const token = jwt.sign(
+                { id: result.data.id, username: result.data.username, role: result.data.role },
+                process.env.JWT_SECRET ?? '',
+                { expiresIn: '6h' }
+            );
+
+            res.status(200).json({ success: true, message: 'Login successful', data: token });
+        } catch {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    }
+
+    private async register(req: Request, res: Response): Promise<void> {
+        try {
+            const { username, email, firstName, lastName, password, bio, profileImage } = req.body;
+
+            const validation = validateRegister(username, email, firstName, lastName, password, bio);
+            if (!validation.valid) {
+                res.status(400).json({ success: false, message: validation.message });
+                return;
+            }
+
+            const result = await this.authService.register(username, email, firstName, lastName, password, bio, profileImage);
+            if (!result.success || !result.data) {
+                res.status(result.statusCode ?? 500).json({ success: false, message: result.message });
+                return;
+            }
+
+            const token = jwt.sign(
+                { id: result.data.id, username: result.data.username, role: result.data.role },
+                process.env.JWT_SECRET ?? '',
+                { expiresIn: '6h' }
+            );
+
+            res.status(201).json({ success: true, message: 'Registration successful', data: token });
+        } catch {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    }
+
+    private async logout(req: Request, res: Response): Promise<void> {
+        try {
+            res.status(200).json({ success: true, message: 'Logout successful' });
+        } catch {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    }
+
+    public getRouter(): Router {
+        return this.router;
+    }
 }
