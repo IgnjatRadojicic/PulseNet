@@ -1,42 +1,66 @@
-import { UserAuthDataDto } from "../../Domain/DTOs/auth/UserAuthDataDto";
-import { User } from "../../Domain/models/User";
-import { IUserRepository } from "../../Domain/repositories/users/IUserRepository";
-import { IAuthService } from "../../Domain/services/auth/IAuthService";
-import bcrypt from "bcryptjs";
+import { UserAuthDataDto } from '../../Domain/DTOs/auth/UserAuthDataDto';
+import { User } from '../../Domain/models/User';
+import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
+import { IAuthService } from '../../Domain/services/auth/IAuthService';
+import { ServiceResult } from '../../Domain/types/ServiceResult';
+import bcrypt from 'bcryptjs';
 
 export class AuthService implements IAuthService {
-  private readonly saltRounds: number = parseInt(process.env.SALT_ROUNDS || "10", 10);
+    private readonly saltRounds: number = parseInt(process.env.SALT_ROUNDS || '10', 10);
 
-  public constructor(private userRepository: IUserRepository) {}
+    public constructor(private userRepository: IUserRepository) {}
 
-  async prijava(korisnickoIme: string, lozinka: string): Promise<UserAuthDataDto> {
-    const user = await this.userRepository.getByUsername(korisnickoIme);
+    async login(username: string, password: string): Promise<ServiceResult<UserAuthDataDto>> {
+        const user = await this.userRepository.getByUsername(username);
 
-    if (user.id !== 0 && await bcrypt.compare(lozinka, user.lozinka)) {
-      return new UserAuthDataDto(user.id, user.korisnickoIme, user.uloga);
+        if (user.id === 0) {
+            return { success: false, message: 'Invalid username or password', statusCode: 401 };
+        }
+
+        const passwordValid = await bcrypt.compare(password, user.passwordHash);
+        if (!passwordValid) {
+            return { success: false, message: 'Invalid username or password', statusCode: 401 };
+        }
+
+        return {
+            success: true,
+            data: new UserAuthDataDto(user.id, user.username, user.email, user.role),
+        };
     }
 
-    return new UserAuthDataDto(); // Neispravno korisničko ime ili lozinka
-  }
+    async register(
+        username: string,
+        email: string,
+        firstName: string,
+        lastName: string,
+        password: string,
+        bio?: string,
+        profileImage?: string
+    ): Promise<ServiceResult<UserAuthDataDto>> {
+        const existingUsername = await this.userRepository.getByUsername(username);
+        if (existingUsername.id !== 0) {
+            return { success: false, message: 'Username is already taken', statusCode: 409 };
+        }
 
-  async registracija(korisnickoIme: string, uloga: string, lozinka: string): Promise<UserAuthDataDto> {
-    const existingUser = await this.userRepository.getByUsername(korisnickoIme);
-    
-    if (existingUser.id !== 0) {
-      return new UserAuthDataDto(); // Korisnik već postoji
+        const existingEmail = await this.userRepository.getByEmail(email);
+        if (existingEmail.id !== 0) {
+            return { success: false, message: 'Email is already taken', statusCode: 409 };
+        }
+
+        const hashedPassword = await bcrypt.hash(password, this.saltRounds);
+
+        const newUser = await this.userRepository.create(
+            new User(0, username, email, firstName, lastName, bio ?? null, profileImage ?? null, 'user', hashedPassword)
+        );
+
+        if (newUser.id === 0) {
+            return { success: false, message: 'Registration failed', statusCode: 500 };
+        }
+
+        return {
+            success: true,
+            data: new UserAuthDataDto(newUser.id, newUser.username, newUser.email, newUser.role),
+            statusCode: 201,
+        };
     }
-
-    // Hash-ujemo lozinku pre čuvanja
-    const hashedPassword = await bcrypt.hash(lozinka, this.saltRounds);
-
-    const newUser = await this.userRepository.create(
-      new User(0, korisnickoIme, uloga, hashedPassword)
-    );
-
-    if (newUser.id !== 0) {
-      return new UserAuthDataDto(newUser.id, newUser.korisnickoIme, newUser.uloga);
-    }
-
-    return new UserAuthDataDto(); // Registracija nije uspela
-  }
 }
