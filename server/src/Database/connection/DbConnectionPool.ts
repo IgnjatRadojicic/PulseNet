@@ -112,7 +112,7 @@ export function startHealthCheck(intervalMS: number = 10000): void {
   }, intervalMS );
 }
 
-export function getWriteConnectuin() : ServiceResult<Pool> {
+export function getWriteConnection() : ServiceResult<Pool> {
   if (currentMaster.status === 'unreachable') {
       return { success: false, message: 'The master node is unreachable writing is not reachable'};
   }
