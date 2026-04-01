@@ -26,10 +26,11 @@ const DEGRADED_THERSHOLD_MS = 500;
 
 const masterNode: DbNode = {
   pool: mysql.createPool({
-    host: process.env.DB_MASTER_HOST,
-    port: Number(process.env.DB_MASTER_HOST) || 3306,
-    user: process.env.DB_USER,
-    database: process.env.DB_NAME,
+    host: process.env.DB_MASTER_HOST ?? 'localhost',
+    port: Number(process.env.DB_MASTER_PORT) || 3306,
+    user: process.env.DB_USER ?? '',
+    password: process.env.DB_PASSWORD ?? '', 
+    database: process.env.DB_NAME ?? '',
     waitForConnections: true,
     connectionLimit: 10,
   }),
