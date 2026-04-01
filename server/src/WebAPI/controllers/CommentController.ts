@@ -44,14 +44,13 @@ export class CommentController {
                 res.status(400).json({ success: false, message: 'Invalid post id' });
                 return;
             }
-            const parentIdNum = parentId !== undefined ? Number(parentId) : null;
-            const validation = validateCommentContent(content, parentIdNum);
+            const validation = validateCommentContent(content, parentId);
 
             if (!validation.valid) {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
-            const result = await this.commentService.addComment(req.user!.id, postId, content, parentIdNum);
+            const result = await this.commentService.addComment(req.user!.id, postId, content, parentId);
             res.status(result.statusCode ?? 201).json(result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });

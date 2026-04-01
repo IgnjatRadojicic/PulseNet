@@ -6,6 +6,7 @@ export class Comment {
         public parentId: number | null = null,
         public commentLikes: number = 0,
         public replies: Comment[] = [],
+        public isLikedByCurrentUser: boolean = false,
         public content: string = '',
         public isDeleted: boolean = false,
         public isFlagged: boolean = false,
