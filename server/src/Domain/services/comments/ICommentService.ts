@@ -8,7 +8,7 @@ export interface ICommentService {
         authorId: number,
         postId: number,
         content: string,
-        parentId?: number | null
+        parentId?: number
     ): Promise<ServiceResult<CommentDto>>;
 
     updateComment(

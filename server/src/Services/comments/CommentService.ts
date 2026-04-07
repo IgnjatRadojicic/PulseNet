@@ -37,10 +37,10 @@ export class CommentService implements ICommentService {
         );
     }
 
-    async createComment(
-        content: string,
-        postId: number,
+    async addComment(
         authorId: number,
+        postId: number,
+        content: string,
         parentId?: number
     ): Promise<ServiceResult<CommentDto>> {
         const post = await this.postRepository.getById(postId);
@@ -73,7 +73,7 @@ export class CommentService implements ICommentService {
         return { success: true, data: dto, statusCode: 201 };
     }
 
-    async getPostComments(postId: number): Promise<ServiceResult<CommentDto[]>> {
+    async getCommentsByPost(postId: number): Promise<ServiceResult<CommentDto[]>> {
         const post = await this.postRepository.getById(postId);
         if (post.id === 0) {
             return { success: false, message: 'Post not found', statusCode: 404 };
@@ -114,7 +114,7 @@ export class CommentService implements ICommentService {
         return { success: true, data: dto };
     }
 
-    async deleteComment(id: number, requesterId: number): Promise<ServiceResult<boolean>> {
+    async softDeleteComment(id: number, requesterId: number): Promise<ServiceResult<boolean>> {
         const comment = await this.commentRepository.getById(id);
         if (comment.id === 0) {
             return { success: false, message: 'Comment not found', statusCode: 404 };
