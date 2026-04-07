@@ -1,1 +1,76 @@
 @import "tailwindcss";
+
+@theme {
+    --color-surface-base: #050508;
+    --color-surface-hover: #0a0a12;
+
+    --color-pulse: #6c63ff;
+    --color-pulse-50: rgba(108, 99, 255, 0.15);
+    --color-pulse-80: rgba(108, 99, 255, 0.8);
+    --color-pulse-60: rgba(108, 99, 255, 0.6);
+    --color-pulse-half: rgba(108, 99, 255, 0.5);
+
+    --color-muted: rgba(232, 230, 240, 0.5);
+    --color-muted-strong: rgba(232, 230, 240, 0.8);
+    --color-muted-soft: rgba(232, 230, 240, 0.4);
+    --color-muted-faint: rgba(232, 230, 240, 0.35);
+    --color-muted-ghost: rgba(232, 230, 240, 0.3);
+    --color-muted-whisper: rgba(232, 230, 240, 0.2);
+
+    --color-role-user: #1D9E75;
+    --color-role-admin: #D85A30;
+
+    --color-border-subtle: rgba(255, 255, 255, 0.04);
+
+    --letter-spacing-display: -0.03em;
+    --letter-spacing-heading: -0.025em;
+    --letter-spacing-mega: 0.18em;
+
+    --line-height-display: 0.95;
+    --line-height-heading: 1.05;
+
+    --radius-px: 1px;
+    --radius-half: 2px;
+}
+
+@utility text-hero {
+    font-size: clamp(3rem, 7vw, 5.5rem);
+}
+
+@utility text-section {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+}
+
+@utility text-subhead {
+    font-size: clamp(2rem, 4vw, 3rem);
+}
+
+@utility font-syne {
+    font-family: "Syne", sans-serif;
+}
+
+@utility font-dm {
+    font-family: "DM Sans", sans-serif;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-surface-base);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-pulse-half);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(108, 99, 255, 0.7);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-pulse-half) var(--color-surface-base);
+}

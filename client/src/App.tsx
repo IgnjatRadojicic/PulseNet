@@ -4,7 +4,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { authApi } from "./api_services/auth/AuthAPIService";
-// import { ProtectedRoute } from "./components/protected_route/ProtectedRoute";
+import LandingPage from "./pages/landing/LandingPage";
 import PrijavaStranica from "./pages/auth/PrijavaStranica";
 import RegistracijaStranica from "./pages/auth/RegistracijaStranica";
 import NotFoundStranica from "./pages/not_found/NotFoundPage";
@@ -13,6 +13,7 @@ import NotFoundStranica from "./pages/not_found/NotFoundPage";
 function App() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<PrijavaStranica authApi={authApi} />} />
       <Route path="/register" element={<RegistracijaStranica authApi={authApi} />} />
       <Route path="/404" element={<NotFoundStranica />} />
