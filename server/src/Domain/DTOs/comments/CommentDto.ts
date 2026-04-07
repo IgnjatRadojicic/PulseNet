@@ -1,13 +1,16 @@
 export class CommentDto {
     public constructor(
         public id: number = 0,
+        public content: string = '',
         public postId: number = 0,
         public authorId: number = 0,
+        public authorUsername: string = '',
         public parentId: number | null = null,
-        public commentLikes: number = 0,
-        public isLikedByCurrentUser: boolean = false,
-        public content: string = '',
         public isDeleted: boolean = false,
-        public isFlagged: boolean = false
+        public isFlagged: boolean = false,
+        public commentLikes: number = 0,
+        public replies: CommentDto[] = [],
+        public createdAt: Date = new Date(),
+        public updatedAt: Date = new Date()
     ) {}
 }

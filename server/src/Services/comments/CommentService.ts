@@ -1,114 +1,196 @@
 import { CommentDto } from '../../Domain/DTOs/comments/CommentDto';
+import { Comment } from '../../Domain/models/Comment';
 import { ICommentRepository } from '../../Domain/repositories/comments/ICommentRepository';
+import { ICommunityRepository } from '../../Domain/repositories/communities/ICommunityRepository';
+import { IPostRepository } from '../../Domain/repositories/posts/IPostRepository';
+import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 import { ICommentService } from '../../Domain/services/comments/ICommentService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
-import { Comment } from '../../Domain/models/Comment';
 
 export class CommentService implements ICommentService {
-    public constructor(private commentRepository: ICommentRepository) {}
+    public constructor(
+        private commentRepository: ICommentRepository,
+        private postRepository: IPostRepository,
+        private userRepository: IUserRepository,
+        private communityRepository: ICommunityRepository
+    ) {}
 
-    async getCommentsByPost(postId: number): Promise<ServiceResult<CommentDto[]>> {
-        const users = await this.commentRepository.getByPost(postId);
-        return {
-            success: true,
-            data: users.map(u => new CommentDto(u.id, u.postId, u.authorId, u.parentId, u.commentLikes, u.isLikedByCurrentUser, u.content, u.isDeleted, u.isFlagged)),
-        };
+    private async buildCommentDto(comment: Comment): Promise<CommentDto> {
+        const [author, likeCount] = await Promise.all([
+            this.userRepository.getById(comment.authorId),
+            this.commentRepository.getLikeCount(comment.id),
+        ]);
+
+        return new CommentDto(
+            comment.id,
+            comment.isDeleted ? '[comment deleted]' : comment.content,
+            comment.postId,
+            comment.authorId,
+            author.username,
+            comment.parentId,
+            comment.isDeleted,
+            comment.isFlagged,
+            likeCount,
+            [],
+            comment.createdAt,
+            comment.updatedAt
+        );
     }
 
-    async addComment(authorId: number, postId: number, content: string, parentId?: number | null): Promise<ServiceResult<CommentDto>> {
-        const newComment = new Comment(0, postId, authorId, parentId ?? null, 0, [], false, content, false, false);
-        const saved = await this.commentRepository.create(newComment);
-        return {
-            success: true,
-            data: new CommentDto(
-                saved.id,
-                saved.postId,
-                saved.authorId,
-                saved.parentId,
-                saved.commentLikes,
-                saved.isLikedByCurrentUser,
-                saved.content,
-                saved.isDeleted,
-                saved.isFlagged
-            )
-        };
+    async createComment(
+        content: string,
+        postId: number,
+        authorId: number,
+        parentId?: number
+    ): Promise<ServiceResult<CommentDto>> {
+        const post = await this.postRepository.getById(postId);
+        if (post.id === 0) {
+            return { success: false, message: 'Post not found', statusCode: 404 };
+        }
+
+        if (parentId !== undefined) {
+            const parent = await this.commentRepository.getById(parentId);
+            if (parent.id === 0) {
+                return { success: false, message: 'Parent comment not found', statusCode: 404 };
+            }
+            if (parent.postId !== postId) {
+                return { success: false, message: 'Parent comment does not belong to this post', statusCode: 400 };
+            }
+            if (parent.parentId !== null) {
+                return { success: false, message: 'Maximum comment depth is 2 levels', statusCode: 400 };
+            }
+        }
+
+        const comment = await this.commentRepository.create(
+            new Comment(0, postId, authorId, parentId ?? null, 0, [], content, false, false, new Date(), new Date())
+        );
+
+        if (comment.id === 0) {
+            return { success: false, message: 'Failed to create comment', statusCode: 500 };
+        }
+
+        const dto = await this.buildCommentDto(comment);
+        return { success: true, data: dto, statusCode: 201 };
     }
 
-    async updateComment(commentId: number, authorId: number, content: string): Promise<ServiceResult<CommentDto>> {
-        const existing = await this.commentRepository.getById(commentId);
-        if (existing.id === 0) {
+    async getPostComments(postId: number): Promise<ServiceResult<CommentDto[]>> {
+        const post = await this.postRepository.getById(postId);
+        if (post.id === 0) {
+            return { success: false, message: 'Post not found', statusCode: 404 };
+        }
+
+        const comments = await this.commentRepository.getByPost(postId);
+        const dtos = await Promise.all(comments.map(c => this.buildCommentDto(c)));
+
+        const rootComments = dtos.filter(c => c.parentId === null);
+        const replies = dtos.filter(c => c.parentId !== null);
+
+        for (const root of rootComments) {
+            root.replies = replies.filter(r => r.parentId === root.id);
+        }
+
+        return { success: true, data: rootComments };
+    }
+
+    async updateComment(id: number, requesterId: number, content: string): Promise<ServiceResult<CommentDto>> {
+        const comment = await this.commentRepository.getById(id);
+        if (comment.id === 0) {
             return { success: false, message: 'Comment not found', statusCode: 404 };
         }
-        if (existing.authorId !== authorId) {
-            return { success: false, message: 'Unauthorized', statusCode: 403 };
+        if (comment.authorId !== requesterId) {
+            return { success: false, message: 'Not authorized to update this comment', statusCode: 403 };
         }
-        existing.content = content;
-        const updated = await this.commentRepository.update(existing);
-        if (updated.id === 0) {
-            return { success: false, message: 'Failed to update comment', statusCode: 500 };
+        if (comment.isDeleted) {
+            return { success: false, message: 'Cannot update a deleted comment', statusCode: 400 };
         }
-        return {
-            success: true,
-            data: new CommentDto(
-                updated.id,
-                updated.postId,
-                updated.authorId,
-                updated.parentId,
-                updated.commentLikes,
-                updated.isLikedByCurrentUser,
-                updated.content,
-                updated.isDeleted,
-                updated.isFlagged
-            )
-        };
+
+        const result = await this.commentRepository.update(id, content);
+        if (!result) {
+            return { success: false, message: 'Update failed', statusCode: 500 };
+        }
+
+        comment.content = content;
+        const dto = await this.buildCommentDto(comment);
+        return { success: true, data: dto };
     }
 
-    async softDeleteComment(commentId: number, actorId: number): Promise<ServiceResult<boolean>> {
-        const existing = await this.commentRepository.getById(commentId);
-        if (existing.id === 0) {
+    async deleteComment(id: number, requesterId: number): Promise<ServiceResult<boolean>> {
+        const comment = await this.commentRepository.getById(id);
+        if (comment.id === 0) {
             return { success: false, message: 'Comment not found', statusCode: 404 };
         }
-        if (existing.authorId !== actorId) {
-            return { success: false, message: 'Unauthorized', statusCode: 403 };
+
+        const post = await this.postRepository.getById(comment.postId);
+        const member = await this.communityRepository.getMember(requesterId, post.communityId);
+        const isAuthor = comment.authorId === requesterId;
+        const isModerator = member.role === 'moderator';
+
+        if (!isAuthor && !isModerator) {
+            return { success: false, message: 'Not authorized to delete this comment', statusCode: 403 };
         }
-        const result = await this.commentRepository.softDelete(commentId);
+
+        const result = await this.commentRepository.softDelete(id);
         if (!result) {
             return { success: false, message: 'Delete failed', statusCode: 500 };
         }
+
         return { success: true, data: true };
     }
 
-    async likeComment(commentId: number, userId: number): Promise<ServiceResult<boolean>> {
-        const existing = await this.commentRepository.getById(commentId);
-        if (existing.id === 0) {
+    async flagComment(id: number, requesterId: number, communityId: number): Promise<ServiceResult<boolean>> {
+        const comment = await this.commentRepository.getById(id);
+        if (comment.id === 0) {
             return { success: false, message: 'Comment not found', statusCode: 404 };
         }
 
-        if (existing.isLikedByCurrentUser) {
-            return { success: false, message: 'Already liked', statusCode: 400 };
+        const member = await this.communityRepository.getMember(requesterId, communityId);
+        if (member.role !== 'moderator') {
+            return { success: false, message: 'Only moderators can flag comments', statusCode: 403 };
         }
 
-        const result = await this.commentRepository.like(commentId, userId);
+        const result = await this.commentRepository.setFlag(id, true);
         if (!result) {
-            return { success: false, message: 'Like failed', statusCode: 500 };
+            return { success: false, message: 'Flag failed', statusCode: 500 };
         }
+
         return { success: true, data: true };
     }
 
-    async unlikeComment(commentId: number, userId: number): Promise<ServiceResult<boolean>> {
-        const existing = await this.commentRepository.getById(commentId);
-        if (existing.id === 0) {
+    async likeComment(userId: number, commentId: number): Promise<ServiceResult<boolean>> {
+        const comment = await this.commentRepository.getById(commentId);
+        if (comment.id === 0) {
             return { success: false, message: 'Comment not found', statusCode: 404 };
         }
 
-        if (!existing.isLikedByCurrentUser) {
-            return { success: false, message: 'Not liked', statusCode: 400 };
+        const alreadyLiked = await this.commentRepository.hasLiked(userId, commentId);
+        if (alreadyLiked) {
+            return { success: false, message: 'You have already liked this comment', statusCode: 409 };
         }
 
-        const result = await this.commentRepository.unlike(commentId, userId);
+        const result = await this.commentRepository.like(userId, commentId);
         if (!result) {
-            return { success: false, message: 'Unlike failed', statusCode: 500 };
+            return { success: false, message: 'Failed to like comment', statusCode: 500 };
         }
+
+        return { success: true, data: true };
+    }
+
+    async unlikeComment(userId: number, commentId: number): Promise<ServiceResult<boolean>> {
+        const comment = await this.commentRepository.getById(commentId);
+        if (comment.id === 0) {
+            return { success: false, message: 'Comment not found', statusCode: 404 };
+        }
+
+        const hasLiked = await this.commentRepository.hasLiked(userId, commentId);
+        if (!hasLiked) {
+            return { success: false, message: 'You have not liked this comment', statusCode: 400 };
+        }
+
+        const result = await this.commentRepository.unlike(userId, commentId);
+        if (!result) {
+            return { success: false, message: 'Failed to unlike comment', statusCode: 500 };
+        }
+
         return { success: true, data: true };
     }
 }
