@@ -51,6 +51,10 @@ export class CommentController {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
+            if(parentIdNum === null) {
+                res.status(400).json({ success: false, message: 'Parent comment id is required' });
+                return;
+            }
             const result = await this.commentService.addComment(req.user!.id, postId, content, parentIdNum);
             res.status(result.statusCode ?? 201).json(result);
         } catch {
