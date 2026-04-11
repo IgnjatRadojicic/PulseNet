@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import LandingNav from '../../components/landing/LandingNav';
 import LandingHero from '../../components/landing/LandingHero';
 import LandingStats from '../../components/landing/LandingStats';
@@ -6,94 +6,21 @@ import LandingFeatures from '../../components/landing/LandingFeatures';
 import LandingRoles from '../../components/landing/LandingRoles';
 import LandingCTA from '../../components/landing/LandingCta';
 import LandingFooter from '../../components/landing/LandingFooter';
-import { useParticles } from '../../hooks/other/useParticles';
-import { useEKG } from '../../hooks/other/useEKG';
+import { useAnimatedBackground } from '../../hooks/other/useAnimatedBackground';
 import handImg from '../../assets/pointing-hand.png';
 
 export default function LandingPage() {
     const landingRef = useRef<HTMLDivElement>(null);
-    const ekgWrapRef = useRef<HTMLDivElement>(null);
-    const pCanvasRef = useRef<HTMLCanvasElement>(null);
-    const eCanvasRef = useRef<HTMLCanvasElement>(null);
-    const mouseRef = useRef<{ x: number; y: number } | null>(null);
 
-    const [ekgDims, setEkgDims] = useState({ W: 0, H: 0 });
-    const [particleDims, setParticleDims] = useState({ W: 0, H: 0 });
-
-    const { draw: drawParticles } = useParticles(pCanvasRef, mouseRef, particleDims.W, particleDims.H);
-    const { draw: drawEKG } = useEKG(eCanvasRef, ekgDims.W, ekgDims.H);
-
-    useEffect(() => {
-        const landing = landingRef.current;
-        const ekgWrap = ekgWrapRef.current;
-        if (!landing || !ekgWrap) return;
-
-        function resize() {
-            if (!landing || !ekgWrap) return;
-            const W = landing.offsetWidth;
-
-            const ekgH = ekgWrap.offsetHeight;
-            if (eCanvasRef.current) {
-                eCanvasRef.current.width = W;
-                eCanvasRef.current.height = ekgH;
-            }
-            setEkgDims({ W, H: ekgH });
-
-            const vh = window.innerHeight;
-            if (pCanvasRef.current) {
-                pCanvasRef.current.width = W;
-                pCanvasRef.current.height = vh;
-            }
-            setParticleDims({ W, H: vh });
-        }
-
-        resize();
-        window.addEventListener('resize', resize);
-
-        const ekgObserver = new ResizeObserver(() => {
-            if (!landing || !ekgWrap) return;
-            const W = landing.offsetWidth;
-            const ekgH = ekgWrap.offsetHeight;
-            if (eCanvasRef.current) {
-                eCanvasRef.current.width = W;
-                eCanvasRef.current.height = ekgH;
-            }
-            setEkgDims({ W, H: ekgH });
-        });
-        ekgObserver.observe(ekgWrap);
-
-        const onMouseMove = (e: MouseEvent) => {
-            mouseRef.current = { x: e.clientX, y: e.clientY };
-        };
-
-        const onMouseLeave = () => {
-            mouseRef.current = null;
-        };
-
-        window.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseleave', onMouseLeave);
-
-        return () => {
-            window.removeEventListener('resize', resize);
-            window.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseleave', onMouseLeave);
-            ekgObserver.disconnect();
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!ekgDims.W || !ekgDims.H || !particleDims.W || !particleDims.H) return;
-        let animFrame: number;
-
-        function loop() {
-            drawParticles();
-            drawEKG();
-            animFrame = requestAnimationFrame(loop);
-        }
-
-        animFrame = requestAnimationFrame(loop);
-        return () => cancelAnimationFrame(animFrame);
-    }, [ekgDims, particleDims, drawParticles, drawEKG]);
+    /*
+     * For the landing page the EKG wraps the CTA section — not a fixed viewport strip.
+     * We use ekgMode 'fullpage' and wire the refs to the existing layout manually,
+     * since the EKG wrapper here is positioned inside the document flow (not fixed).
+     *
+     * We still use useAnimatedBackground so that hook owns the animation loop;
+     * we just need to attach ekgWrapRef to the CTA section wrapper below.
+     */
+    const { pCanvasRef, ekgWrapRef, eCanvasRef } = useAnimatedBackground('fullpage');
 
     return (
         <div
@@ -102,7 +29,12 @@ export default function LandingPage() {
         >
             <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet" />
 
-            <canvas ref={pCanvasRef} className="fixed top-0 left-0 w-full pointer-events-none" style={{ zIndex: 0, height: '100vh' }} />
+            {/* Particle canvas — full fixed viewport */}
+            <canvas
+                ref={pCanvasRef}
+                className="fixed top-0 left-0 w-full pointer-events-none"
+                style={{ zIndex: 0, height: '100vh' }}
+            />
 
             <img
                 src={handImg}
@@ -123,8 +55,13 @@ export default function LandingPage() {
                 <LandingFeatures />
                 <LandingRoles />
 
+                {/* EKG wrapper — in-flow, wraps the CTA section */}
                 <div ref={ekgWrapRef} className="relative">
-                    <canvas ref={eCanvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }} />
+                    <canvas
+                        ref={eCanvasRef}
+                        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                        style={{ zIndex: 0 }}
+                    />
                     <div className="relative" style={{ zIndex: 1 }}>
                         <LandingCTA />
                     </div>

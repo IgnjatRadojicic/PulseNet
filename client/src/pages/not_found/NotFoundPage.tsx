@@ -1,21 +1,32 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
 
-export default function NotFoundStranica() {
-  return (
-    <main className="min-h-screen bg-gradient-to-tr from-slate-600/75 to-orange-800/70 flex items-center justify-center">
-      <div className="bg-white/30 backdrop-blur-lg border border-slate-500 shadow-xl rounded-2xl px-10 py-14 text-center max-w-lg w-full">
-        <h1 className="text-6xl font-extrabold text-gray-800 mb-4">404</h1>
-        <h2 className="text-2xl font-semibold text-gray-700 mb-2">Страница није пронађена</h2>
-        <p className="text-gray-600 mb-6">
-          Страница коју тражите не постоји или је премештена.
-        </p>
-        <Link
-          to="/"
-          className="inline-block bg-blue-700/70 text-white px-6 py-2 rounded-xl hover:bg-blue-700/90 transition"
+export default function NotFoundPage() {
+    const navigate = useNavigate();
+
+    return (
+        <div
+            className="min-h-screen flex flex-col items-center justify-center"
+            style={{ background: '#050508', fontFamily: 'DM Sans, sans-serif' }}
         >
-          Назад на почетну
-        </Link>
-      </div>
-    </main>
-  );
+            <p className="text-xs tracking-widest uppercase mb-4" style={{ color: 'rgba(108,99,255,0.6)', letterSpacing: '0.18em' }}>
+                404
+            </p>
+            <h1
+                className="text-white font-black mb-4"
+                style={{ fontFamily: 'Syne, sans-serif', fontSize: 'clamp(3rem,8vw,6rem)', lineHeight: '1', letterSpacing: '-0.03em' }}
+            >
+                Not found
+            </h1>
+            <p className="text-sm font-light mb-12 text-center max-w-xs" style={{ color: 'rgba(232,230,240,0.4)', lineHeight: '1.8' }}>
+                The page you are looking for does not exist or has been moved.
+            </p>
+            <button
+                onClick={() => navigate('/')}
+                className="text-white text-sm tracking-widest px-9 py-3 cursor-pointer transition-all hover:-translate-y-px"
+                style={{ background: '#6c63ff', border: 'none', borderRadius: '2px' }}
+            >
+                Back to home
+            </button>
+        </div>
+    );
 }
