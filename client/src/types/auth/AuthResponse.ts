@@ -1,5 +1,5 @@
 export type AuthResponse = {
-  success: boolean;
-  message: string;
-  data?: string;
-}
+    success: boolean;
+    message: string;
+    data?: string;
+};
