@@ -19,8 +19,8 @@ export default function LoginPage() {
 
     const { pCanvasRef, ekgWrapRef, eCanvasRef, mounted } = useAnimatedBackground('centered');
 
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
+    async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
         setError('');
         const validationError = validateLogin(username, password);
         if (validationError) { setError(validationError); return; }
