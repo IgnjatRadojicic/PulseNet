@@ -1,10 +1,28 @@
 const features = [
-    { title: 'Tematske zajednice', desc: 'Kreiranje i upravljanje zajednicama sa hijerarhijskim ulogama. Moderatori kontrolišu sadržaj, članstvo i pristup.' },
-    { title: 'Distribuirana baza podataka', desc: 'Master-slave replikacija sa automatskim failoverom osigurava visoku dostupnost i ravnomerno balansiranje čitanja.' },
-    { title: 'Personalizovani feed', desc: 'Dinamički feed koji kombinuje sadržaj iz zajednica i praćenih korisnika, sortiran po relevantnosti.' },
-    { title: 'Sistem tagova', desc: 'Globalni sistem oznaka kojim upravljaju administratori. Organizacija sadržaja kroz semantičke kategorije.' },
-    { title: 'Hijerarhijski komentari', desc: 'Dvonivovski sistem komentara sa soft-delete mehanizmom koji čuva kontekst diskusije.' },
-    { title: 'Audit log', desc: 'Kompletna evidencija svih akcija u sistemu. Administratori imaju uvid u svaki događaj sa paginacijom.' },
+    {
+        title: 'Thematic communities',
+        desc: 'Creation and management of communities with hierarchical roles. Moderators control content, membership, and access.'
+    },
+    {
+        title: 'Distributed database',
+        desc: 'Master-slave replication with automatic failover ensures high availability and balanced read performance.'
+    },
+    {
+        title: 'Personalized feed',
+        desc: 'A dynamic feed combining content from communities and followed users, sorted by relevance.'
+    },
+    {
+        title: 'Tag system',
+        desc: 'Global tagging system managed by administrators. Content organization through semantic categories.'
+    },
+    {
+        title: 'Hierarchical comments',
+        desc: 'Two-level comment system with soft-delete mechanism that preserves discussion context.'
+    },
+    {
+        title: 'Audit log',
+        desc: 'Complete record of all system actions. Administrators can review every event with pagination support.'
+    }
 ];
 
 export default function LandingFeatures() {
@@ -19,8 +37,12 @@ export default function LandingFeatures() {
                     className="p-8 md:p-12 bg-surface-base transition-colors duration-300 cursor-default group hover:bg-surface-hover"
                 >
                     <div className="h-px mb-8 w-8 bg-pulse transition-all duration-300 group-hover:w-12" />
-                    <h3 className="font-syne text-white font-bold text-lg mb-4 tracking-tight">{f.title}</h3>
-                    <p className="text-sm font-light leading-loose text-muted-soft">{f.desc}</p>
+                    <h3 className="font-syne text-white font-bold text-lg mb-4 tracking-tight">
+                        {f.title}
+                    </h3>
+                    <p className="text-sm font-light leading-loose text-muted-soft">
+                        {f.desc}
+                    </p>
                 </div>
             ))}
         </section>

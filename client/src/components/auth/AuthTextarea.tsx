@@ -11,7 +11,7 @@ export default function AuthTextarea({ label, value, onChange, placeholder, opti
         <div className="flex flex-col gap-2">
             <label className="text-xs tracking-widest uppercase text-muted-ghost" style={{ letterSpacing: '0.15em' }}>
                 {label}
-                {optional && <span className="normal-case text-muted-whisper ml-1">(opciono)</span>}
+                {optional && <span className="normal-case text-muted-whisper ml-1">(optional)</span>}
             </label>
             <textarea
                 value={value}
