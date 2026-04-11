@@ -50,17 +50,12 @@ export default function LoginPage() {
                 rel="stylesheet"
             />
 
-            {/* Layer 0 — particles, full viewport */}
             <canvas
                 ref={pCanvasRef}
                 className="fixed top-0 left-0 w-full pointer-events-none"
                 style={{ zIndex: 0, height: '100vh' }}
             />
 
-            {/*
-             * EKG wrapper — fixed strip centered vertically on the viewport.
-             * Height of 120px means the EKG line runs through the middle of the card.
-             */}
             <div
                 ref={ekgWrapRef}
                 className="pointer-events-none"
@@ -80,7 +75,6 @@ export default function LoginPage() {
                 />
             </div>
 
-            {/* Layer 2 — page content */}
             <div
                 className="relative flex items-center justify-center min-h-screen"
                 style={{ zIndex: 2 }}
@@ -93,7 +87,6 @@ export default function LoginPage() {
                         transition: 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)',
                     }}
                 >
-                    {/* Logo */}
                     <div className="text-center mb-8">
                         <Link to="/" className="no-underline inline-block">
                             <span className="font-syne text-white font-black text-3xl tracking-tight">
@@ -102,7 +95,6 @@ export default function LoginPage() {
                         </Link>
                     </div>
 
-                    {/* Card — squarer corners, centered content */}
                     <div
                         className="rounded-lg px-8 py-8"
                         style={{
@@ -113,7 +105,6 @@ export default function LoginPage() {
                             boxShadow: '0 0 0 1px rgba(255,255,255,0.03) inset, 0 40px 100px rgba(0,0,0,0.6)',
                         }}
                     >
-                        {/* Heading — centered, Roboto */}
                         <div className="text-center mb-7">
                             <p
                                 className="text-pulse mb-1.5"

@@ -12,14 +12,6 @@ import handImg from '../../assets/pointing-hand.png';
 export default function LandingPage() {
     const landingRef = useRef<HTMLDivElement>(null);
 
-    /*
-     * For the landing page the EKG wraps the CTA section — not a fixed viewport strip.
-     * We use ekgMode 'fullpage' and wire the refs to the existing layout manually,
-     * since the EKG wrapper here is positioned inside the document flow (not fixed).
-     *
-     * We still use useAnimatedBackground so that hook owns the animation loop;
-     * we just need to attach ekgWrapRef to the CTA section wrapper below.
-     */
     const { pCanvasRef, ekgWrapRef, eCanvasRef } = useAnimatedBackground('fullpage');
 
     return (
@@ -29,7 +21,6 @@ export default function LandingPage() {
         >
             <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet" />
 
-            {/* Particle canvas — full fixed viewport */}
             <canvas
                 ref={pCanvasRef}
                 className="fixed top-0 left-0 w-full pointer-events-none"
@@ -55,7 +46,6 @@ export default function LandingPage() {
                 <LandingFeatures />
                 <LandingRoles />
 
-                {/* EKG wrapper — in-flow, wraps the CTA section */}
                 <div ref={ekgWrapRef} className="relative">
                     <canvas
                         ref={eCanvasRef}

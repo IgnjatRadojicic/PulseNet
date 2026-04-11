@@ -101,7 +101,6 @@ export default function RegisterPage() {
                         transition: 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)',
                     }}
                 >
-                    {/* Logo */}
                     <div className="text-center mb-8">
                         <Link to="/" className="no-underline inline-block">
                             <span className="font-syne text-white font-black text-3xl tracking-tight">
