@@ -30,7 +30,7 @@ export default function LandingPage() {
             <img
                 src={handImg}
                 alt=""
-                className="hidden lg:block absolute top-0 right-0 w-[1100px] pointer-events-none select-none"
+                className="hidden [@media(min-width:1800px)]:block absolute top-0 right-0 w-[1100px] pointer-events-none select-none"
                 style={{
                     filter: 'brightness(0.4) sepia(1) saturate(3) hue-rotate(220deg) brightness(1.2)',
                     maskImage: 'linear-gradient(to bottom left, transparent 5%, black 35%)',
@@ -45,6 +45,7 @@ export default function LandingPage() {
                 <LandingStats />
                 <LandingFeatures />
                 <LandingRoles />
+
 
                 <div ref={ekgWrapRef} className="relative">
                     <canvas
