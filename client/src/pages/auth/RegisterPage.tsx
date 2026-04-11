@@ -7,8 +7,7 @@ import AuthError from '../../components/auth/AuthError';
 import AuthSubmitButton from '../../components/auth/AuthSubmitButton';
 import { useAnimatedBackground } from '../../hooks/other/useAnimatedBackground';
 import { validateRegister, type RegisterForm } from '../../utils/authValidations';
-
-const API_URL = import.meta.env.VITE_API_URL as string;
+import { API } from '../../constants/api';
 
 export default function RegisterPage() {
     const navigate = useNavigate();
@@ -26,7 +25,7 @@ export default function RegisterPage() {
         setForm(prev => ({ ...prev, [field]: value }));
     }
 
-    async function handleSubmit(e: React.FormEvent) {
+    async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
         e.preventDefault();
         setError('');
         const validationError = validateRegister(form);
@@ -34,7 +33,7 @@ export default function RegisterPage() {
 
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}auth/register`, {
+            const res = await fetch(`${API.BASE_URL}auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

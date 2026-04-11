@@ -6,8 +6,7 @@ import AuthError from '../../components/auth/AuthError';
 import AuthSubmitButton from '../../components/auth/AuthSubmitButton';
 import { useAnimatedBackground } from '../../hooks/other/useAnimatedBackground';
 import { validateLogin } from '../../utils/authValidations';
-
-const API_URL = import.meta.env.VITE_API_URL as string;
+import { API } from '../../constants/api';
 
 export default function LoginPage() {
     const navigate = useNavigate();
@@ -27,7 +26,7 @@ export default function LoginPage() {
 
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}auth/login`, {
+            const res = await fetch(`${API.BASE_URL}auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
