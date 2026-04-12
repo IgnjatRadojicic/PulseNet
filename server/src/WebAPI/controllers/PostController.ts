@@ -1,10 +1,9 @@
 import { Request, Response, Router } from 'express';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
-import { authorize } from '../../Middlewares/authorization/AuthorizeMiddleware';
-import { validatePostCreate, validatePostUpdate } from '../validators/PostValidator';
+import { validateCreatePost } from '../validators/PostValidator';
+import { IPostService, PostSortOption } from '../../Domain/services/posts/IPostService';
 
-import { IPostService } from "../../Domain/services/post/IPostService";
-import { PostSortOption } from "../../Domain/services/post/IPostService";
+const VALID_SORTS: PostSortOption[] = ['newest', 'popular', 'commented'];
 
 export class PostController {
     private router: Router;
@@ -17,10 +16,10 @@ export class PostController {
     }
 
     private initializeRoutes(): void {
-        this.router.get('/posts/community/:communityId', this.getByCommunity.bind(this));
         this.router.get('/posts/feed', authenticate, this.getFeed.bind(this));
+        this.router.get('/posts/community/:communityId', this.getByCommunity.bind(this));
+        this.router.get('/posts/:id', this.getById.bind(this));
         this.router.post('/posts', authenticate, this.create.bind(this));
-        this.router.get('/posts/:id', authenticate, this.getById.bind(this));
         this.router.put('/posts/:id', authenticate, this.update.bind(this));
         this.router.delete('/posts/:id', authenticate, this.delete.bind(this));
         this.router.post('/posts/:id/like', authenticate, this.addLike.bind(this));
@@ -33,10 +32,12 @@ export class PostController {
         try {
             const communityId = parseInt(String(req.params.communityId));
             if (isNaN(communityId)) {
-                res.status(400).json({ success: false, message: 'Invalid ID' });
+                res.status(400).json({ success: false, message: 'Invalid community ID' });
                 return;
             }
-            const sort: PostSortOption = (req.query.sort as PostSortOption) ?? 'newest';
+            const sort: PostSortOption = VALID_SORTS.includes(req.query.sort as PostSortOption)
+                ? req.query.sort as PostSortOption
+                : 'newest';
             const result = await this.postService.getCommunityPosts(communityId, sort);
             res.status(result.statusCode ?? 200).json(result);
         } catch {
@@ -56,18 +57,22 @@ export class PostController {
     private async create(req: Request, res: Response): Promise<void> {
         try {
             const { title, content, mediaUrl, communityId, tagIds } = req.body;
-            const validation = validatePostCreate(title, content);
+
+            const validation = validateCreatePost(title, content);
             if (!validation.valid) {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
+
+            if (!communityId || isNaN(Number(communityId))) {
+                res.status(400).json({ success: false, message: 'Valid community ID is required' });
+                return;
+            }
+
             const result = await this.postService.createPost(
-                title,
-                content,
-                mediaUrl ?? null,
-                communityId,
-                req.user!.id,
-                tagIds
+                title, content, mediaUrl ?? null,
+                Number(communityId), req.user!.id,
+                Array.isArray(tagIds) ? tagIds : []
             );
             res.status(result.statusCode ?? 201).json(result);
         } catch {
@@ -97,17 +102,13 @@ export class PostController {
                 return;
             }
             const { title, content, mediaUrl } = req.body;
-            const validation = validatePostUpdate(title, content);
+            const validation = validateCreatePost(title, content);
             if (!validation.valid) {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
             const result = await this.postService.updatePost(
-                id,
-                req.user!.id,
-                title,
-                content,
-                mediaUrl ?? null
+                id, req.user!.id, title, content, mediaUrl ?? null
             );
             res.status(result.statusCode ?? 200).json(result);
         } catch {
@@ -160,11 +161,11 @@ export class PostController {
     private async addTag(req: Request, res: Response): Promise<void> {
         try {
             const postId = parseInt(String(req.params.id));
-            if (isNaN(postId)) {
+            const tagId = parseInt(String(req.body.tagId));
+            if (isNaN(postId) || isNaN(tagId)) {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const tagId  = parseInt(req.body.tagId);
             const result = await this.postService.addTag(postId, tagId, req.user!.id);
             res.status(result.statusCode ?? 200).json(result);
         } catch {
@@ -175,11 +176,11 @@ export class PostController {
     private async removeTag(req: Request, res: Response): Promise<void> {
         try {
             const postId = parseInt(String(req.params.id));
-            const tagId  = parseInt(String(req.params.tagId));
+            const tagId = parseInt(String(req.params.tagId));
             if (isNaN(postId) || isNaN(tagId)) {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
-            }
+        }
             const result = await this.postService.removeTag(postId, tagId, req.user!.id);
             res.status(result.statusCode ?? 200).json(result);
         } catch {
@@ -190,5 +191,4 @@ export class PostController {
     public getRouter(): Router {
         return this.router;
     }
-
 }
