@@ -5,7 +5,6 @@ export interface ICommentRepository {
     getById(id: number): Promise<Comment>;
     getByPost(postId: number): Promise<Comment[]>;
     getByAuthor(authorId: number): Promise<Comment[]>;
-    getReplies(parentId: number): Promise<Comment[]>;
     update(id: number, content: string): Promise<boolean>;
     softDelete(id: number): Promise<boolean>;
     setFlag(id: number, isFlagged: boolean): Promise<boolean>;

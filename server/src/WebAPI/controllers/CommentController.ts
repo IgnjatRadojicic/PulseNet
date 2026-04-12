@@ -19,7 +19,7 @@ export class CommentController {
         this.router.put('/comments/:id', authenticate, this.updateComment.bind(this));
         this.router.delete('/comments/:id', authenticate, this.deleteComment.bind(this));
         this.router.post('/comments/:id/like', authenticate, this.likeComment.bind(this));
-        this.router.post('/comments/:id/unlike', authenticate, this.unlikeComment.bind(this));
+        this.router.delete('/comments/:id/like', authenticate, this.unlikeComment.bind(this));
     }
 
     private async getCommentsByPost(req: Request, res: Response): Promise<void> {
@@ -51,10 +51,7 @@ export class CommentController {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
-            if(parentIdNum === null) {
-                res.status(400).json({ success: false, message: 'Parent comment id is required' });
-                return;
-            }
+
             const result = await this.commentService.addComment(req.user!.id, postId, content, parentIdNum);
             res.status(result.statusCode ?? 201).json(result);
         } catch {
@@ -124,4 +121,7 @@ export class CommentController {
         }
     }
 
+    public getRouter(): Router {
+        return this.router;
+    }
 }

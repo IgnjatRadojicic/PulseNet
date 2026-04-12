@@ -16,21 +16,15 @@ export class CommentService implements ICommentService {
     ) {}
 
     private async buildCommentDto(comment: Comment): Promise<CommentDto> {
-        const [author, likeCount] = await Promise.all([
-            this.userRepository.getById(comment.authorId),
-            this.commentRepository.getLikeCount(comment.id),
-        ]);
 
         return new CommentDto(
             comment.id,
             comment.isDeleted ? '[comment deleted]' : comment.content,
             comment.postId,
             comment.authorId,
-            author.username,
             comment.parentId,
             comment.isDeleted,
             comment.isFlagged,
-            likeCount,
             [],
             comment.createdAt,
             comment.updatedAt
@@ -41,14 +35,14 @@ export class CommentService implements ICommentService {
         authorId: number,
         postId: number,
         content: string,
-        parentId?: number
+        parentId: number | null = null
     ): Promise<ServiceResult<CommentDto>> {
         const post = await this.postRepository.getById(postId);
         if (post.id === 0) {
             return { success: false, message: 'Post not found', statusCode: 404 };
         }
 
-        if (parentId !== undefined) {
+        if (parentId !== null) {
             const parent = await this.commentRepository.getById(parentId);
             if (parent.id === 0) {
                 return { success: false, message: 'Parent comment not found', statusCode: 404 };

@@ -4,11 +4,9 @@ export class CommentDto {
         public content: string = '',
         public postId: number = 0,
         public authorId: number = 0,
-        public authorUsername: string = '',
         public parentId: number | null = null,
         public isDeleted: boolean = false,
         public isFlagged: boolean = false,
-        public commentLikes: number = 0,
         public replies: CommentDto[] = [],
         public createdAt: Date = new Date(),
         public updatedAt: Date = new Date()

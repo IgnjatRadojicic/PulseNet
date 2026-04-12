@@ -46,12 +46,12 @@ export class CommentRepository implements ICommentRepository {
             const conn = getReadConnection();
             if (!conn.success || !conn.data) return [];
             const [rows] = await conn.data.execute<RowDataPacket[]>(
-                'SELECT id, post_id, author_id, parent_id, comment_likes, content, is_deleted, is_flagged FROM comments WHERE post_id = ? ORDER BY id ASC',
+                'SELECT id, post_id, author_id, parent_id, content, is_deleted, is_flagged FROM comments WHERE post_id = ? ORDER BY id ASC',
                 [postId]
             );
 
             return rows.map(r => new Comment(
-                r.id, r.post_id, r.author_id, r.parent_id, r.comment_likes, r.content, r.is_deleted, r.is_flagged));
+                r.id, r.post_id, r.author_id, r.parent_id, r.content, r.is_deleted, r.is_flagged));
         } catch {
             return [];
         }
@@ -62,27 +62,11 @@ export class CommentRepository implements ICommentRepository {
             const conn = getReadConnection();
             if (!conn.success || !conn.data) return [];
             const [rows] = await conn.data.execute<RowDataPacket[]>(
-                'SELECT id, post_id, author_id, parent_id, comment_likes, content, is_deleted, is_flagged FROM comments WHERE author_id = ?',
+                'SELECT id, post_id, author_id, parent_id, content, is_deleted, is_flagged FROM comments WHERE author_id = ?',
                 [authorId]
             );
             return rows.map(r => new Comment(
-                r.id, r.post_id, r.author_id, r.parent_id, r.comment_likes, r.content, r.is_deleted, r.is_flagged));
-        } catch {
-            return [];
-        }
-    }
-
-    async getReplies(parentId: number): Promise<Comment[]> {
-        try {
-            const conn = getReadConnection();
-            if (!conn.success || !conn.data) return [];
-            const [rows] = await conn.data.execute<RowDataPacket[]>(
-                'SELECT id, post_id, author_id, parent_id, comment_likes, content, is_deleted, is_flagged FROM comments WHERE parent_id = ?',
-                [parentId]
-            );
-
-            return rows.map(r => new Comment(
-                r.id, r.post_id, r.author_id, r.parent_id, r.comment_likes, r.content, r.is_deleted, r.is_flagged));
+                r.id, r.post_id, r.author_id, r.parent_id, r.content, r.is_deleted, r.is_flagged));
         } catch {
             return [];
         }
