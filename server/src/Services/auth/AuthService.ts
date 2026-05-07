@@ -1,8 +1,10 @@
 import { UserAuthDataDto } from '../../Domain/DTOs/auth/UserAuthDataDto';
+import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { User } from '../../Domain/models/User';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 import { IAuthService } from '../../Domain/services/auth/IAuthService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
+import { LoginInput, RegisterInput } from '../../Domain/types/inputs/AuthInputs';
 import bcrypt from 'bcryptjs';
 
 export class AuthService implements IAuthService {
@@ -10,16 +12,16 @@ export class AuthService implements IAuthService {
 
     public constructor(private userRepository: IUserRepository) {}
 
-    async login(username: string, password: string): Promise<ServiceResult<UserAuthDataDto>> {
-        const user = await this.userRepository.getByUsername(username);
+    async login(input: LoginInput): Promise<ServiceResult<UserAuthDataDto>> {
 
-        if (user.id === 0) {
-            return { success: false, message: 'Invalid username or password', statusCode: 401 };
+        const user = await this.userRepository.getByUsername(input.username);
+        if (!user) {
+            return { success: false, message: 'Invalid username or password', errorCode: ErrorCode.UNAUTHORIZED };
         }
 
-        const passwordValid = await bcrypt.compare(password, user.passwordHash);
+        const passwordValid = await bcrypt.compare(input.password, user.passwordHash);
         if (!passwordValid) {
-            return { success: false, message: 'Invalid username or password', statusCode: 401 };
+            return { success: false, message: 'Invalid username or password', errorCode: ErrorCode.UNAUTHORIZED };
         }
 
         return {
@@ -28,39 +30,31 @@ export class AuthService implements IAuthService {
         };
     }
 
-    async register(
-        username: string,
-        email: string,
-        firstName: string,
-        lastName: string,
-        password: string,
-        bio?: string,
-        profileImage?: string
-    ): Promise<ServiceResult<UserAuthDataDto>> {
-        const existingUsername = await this.userRepository.getByUsername(username);
-        if (existingUsername.id !== 0) {
-            return { success: false, message: 'Username is already taken', statusCode: 409 };
+    async register(input: RegisterInput): Promise<ServiceResult<UserAuthDataDto>> {
+
+        const existingUsername = await this.userRepository.getByUsername(input.username);
+        if (existingUsername) {
+            return { success: false, message: 'Username is already taken', errorCode: ErrorCode.ALREADY_EXISTS };
         }
 
-        const existingEmail = await this.userRepository.getByEmail(email);
-        if (existingEmail.id !== 0) {
-            return { success: false, message: 'Email is already taken', statusCode: 409 };
+        const existingEmail = await this.userRepository.getByEmail(input.email);
+        if (existingEmail) {
+            return { success: false, message: 'Email is already taken', errorCode: ErrorCode.ALREADY_EXISTS };
         }
 
-        const hashedPassword = await bcrypt.hash(password, this.saltRounds);
+        const hashedPassword = await bcrypt.hash(input.password, this.saltRounds);
 
         const newUser = await this.userRepository.create(
-            new User(0, username, email, firstName, lastName, bio ?? null, profileImage ?? null, 'user', hashedPassword)
+            new User(0, input.username, input.email, input.firstName, input.lastName, input.bio ?? null, input.profileImage ?? null, 'user', hashedPassword)
         );
 
-        if (newUser.id === 0) {
-            return { success: false, message: 'Registration failed', statusCode: 500 };
+        if (!newUser) {
+            return { success: false, message: 'Registration failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
         return {
             success: true,
             data: new UserAuthDataDto(newUser.id, newUser.username, newUser.email, newUser.role),
-            statusCode: 201,
         };
     }
 }
