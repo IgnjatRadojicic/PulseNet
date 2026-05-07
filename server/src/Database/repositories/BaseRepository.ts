@@ -18,7 +18,7 @@ export abstract class BaseRepository {
 
     }
 
-    protected async exectureReadOne<T>(
+    protected async executeReadOne<T>(
         query: string,
         params: QueryParams,
         mapper: (row: RowDataPacket) => T
@@ -50,7 +50,7 @@ export abstract class BaseRepository {
     }
 
     protected buildPlaceholders(items: QueryParams): string {
-        return items.map(() => '?').join(',');
+        return items.map(() => '?').join(',');  
     }
 
 }
