@@ -9,4 +9,6 @@ export class UserDto {
         public profileImage: string | null = null,
         public role: string = 'user'
     ) {}
+
+    
 }
