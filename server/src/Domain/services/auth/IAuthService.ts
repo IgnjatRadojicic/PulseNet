@@ -1,15 +1,8 @@
 import { UserAuthDataDto } from '../../DTOs/auth/UserAuthDataDto';
 import { ServiceResult } from '../../types/ServiceResult';
+import { LoginInput, RegisterInput } from '../../types/inputs/AuthInputs';
 
 export interface IAuthService {
-    login(username: string, password: string): Promise<ServiceResult<UserAuthDataDto>>;
-    register(
-        username: string,
-        email: string,
-        firstName: string,
-        lastName: string,
-        password: string,
-        bio?: string,
-        profileImage?: string
-    ): Promise<ServiceResult<UserAuthDataDto>>;
+    login(input: LoginInput): Promise<ServiceResult<UserAuthDataDto>>;
+    register(input: RegisterInput): Promise<ServiceResult<UserAuthDataDto>>;
 }

@@ -2,6 +2,7 @@ import { Request, Response, Router } from 'express';
 import { IAuthService } from '../../Domain/services/auth/IAuthService';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { validateLogin, validateRegister } from '../validators/AuthValidator';
+import { sendServiceResult } from '../helpers/responseHelper';
 import jwt from 'jsonwebtoken';
 
 export class AuthController {
@@ -30,9 +31,9 @@ export class AuthController {
                 return;
             }
 
-            const result = await this.authService.login(username, password);
+            const result = await this.authService.login({username, password});
             if (!result.success || !result.data) {
-                res.status(result.statusCode ?? 401).json({ success: false, message: result.message });
+                sendServiceResult(res, result);
                 return;
             }
 
@@ -58,9 +59,9 @@ export class AuthController {
                 return;
             }
 
-            const result = await this.authService.register(username, email, firstName, lastName, password, bio, profileImage);
+            const result = await this.authService.register({username, email, firstName, lastName, password, bio, profileImage});
             if (!result.success || !result.data) {
-                res.status(result.statusCode ?? 500).json({ success: false, message: result.message });
+                sendServiceResult(res, result);
                 return;
             }
 
@@ -78,6 +79,7 @@ export class AuthController {
 
     private async logout(req: Request, res: Response): Promise<void> {
         try {
+            // TODO: audit log za odjavu            
             res.status(200).json({ success: true, message: 'Logout successful' });
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });

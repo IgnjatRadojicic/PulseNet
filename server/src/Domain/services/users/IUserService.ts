@@ -1,22 +1,24 @@
 import { UserDto } from '../../DTOs/users/UserDto';
 import { ServiceResult } from '../../types/ServiceResult';
+import {
+    UpdateProfileInput,
+    UpdateRoleInput,
+    SearchUsersInput,
+    GetUserInput,
+    FollowUserInput,
+    UnfollowUserInput,
+    GetFollowersInput,
+    GetFollowingInput,
+} from '../../types/inputs/UserInputs';
 
 export interface IUserService {
     getAllUsers(): Promise<ServiceResult<UserDto[]>>;
-    getUserById(id: number): Promise<ServiceResult<UserDto>>;
-    updateProfile(
-        id: number,
-        username: string,
-        email: string,
-        firstName: string,
-        lastName: string,
-        bio?: string,
-        profileImage?: string
-    ): Promise<ServiceResult<UserDto>>;
-    updateRole(id: number, role: string): Promise<ServiceResult<boolean>>;
-    searchUsers(query: string): Promise<ServiceResult<UserDto[]>>;
-    followUser(followerId: number, followingId: number): Promise<ServiceResult<boolean>>;
-    unfollowUser(followerId: number, followingId: number): Promise<ServiceResult<boolean>>;
-    getFollowers(id: number): Promise<ServiceResult<UserDto[]>>;
-    getFollowing(id: number): Promise<ServiceResult<UserDto[]>>;
+    getUserById(input: GetUserInput): Promise<ServiceResult<UserDto>>;
+    updateProfile(input: UpdateProfileInput): Promise<ServiceResult<UserDto>>;
+    updateRole(input: UpdateRoleInput): Promise<ServiceResult<boolean>>;
+    searchUsers(input: SearchUsersInput): Promise<ServiceResult<UserDto[]>>;
+    followUser(input: FollowUserInput): Promise<ServiceResult<boolean>>;
+    unfollowUser(input: UnfollowUserInput): Promise<ServiceResult<boolean>>;
+    getFollowers(input: GetFollowersInput): Promise<ServiceResult<UserDto[]>>;
+    getFollowing(input: GetFollowingInput): Promise<ServiceResult<UserDto[]>>;
 }

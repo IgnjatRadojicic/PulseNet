@@ -1,114 +1,131 @@
 import { UserDto } from '../../Domain/DTOs/users/UserDto';
+import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { User } from '../../Domain/models/User';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
+import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFollowRepository.ts';
 import { IUserService } from '../../Domain/services/users/IUserService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
-
+import {
+    UpdateProfileInput,
+    UpdateRoleInput,
+    SearchUsersInput,
+    GetUserInput,
+    FollowUserInput,
+    UnfollowUserInput,
+    GetFollowersInput,
+    GetFollowingInput,
+} from '../../Domain/types/inputs/UserInputs';
 export class UserService implements IUserService {
-    public constructor(private userRepository: IUserRepository) {}
+    public constructor(
+        private userRepository: IUserRepository,
+        private userFollowRepository: IUserFollowRepository
+    ) {}
+
 
     async getAllUsers(): Promise<ServiceResult<UserDto[]>> {
-        const users: User[] = await this.userRepository.getAll();
-        return {
-            success: true,
-            data: users.map(u => new UserDto(u.id, u.username, u.email, u.firstName, u.lastName, u.bio, u.profileImage, u.role)),
-        };
+        const users = await this.userRepository.getAll();
+        return {success: true, data: users.map(u => this.toDto(u))};
     }
 
-    async getUserById(id: number): Promise<ServiceResult<UserDto>> {
-        const user = await this.userRepository.getById(id);
-        if (user.id === 0) {
-            return { success: false, message: 'User not found', statusCode: 404 };
+    async getUserById(input: GetUserInput): Promise<ServiceResult<UserDto>> {
+        const user = await this.userRepository.getById(input.userId);
+        if (!user) {
+            return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };   
         }
-        return {
-            success: true,
-            data: new UserDto(user.id, user.username, user.email, user.firstName, user.lastName, user.bio, user.profileImage, user.role),
-        };
+        return {success: true, data: this.toDto(user)};
     }
 
-    async updateProfile(
-        id: number,
-        username: string,
-        email: string,
-        firstName: string,
-        lastName: string,
-        bio?: string,
-        profileImage?: string
-    ): Promise<ServiceResult<UserDto>> {
-        const existing = await this.userRepository.getById(id);
-        if (existing.id === 0) {
-            return { success: false, message: 'User not found', statusCode: 404 };
+    async updateProfile(input: UpdateProfileInput): Promise<ServiceResult<UserDto>> {
+        const existing = await this.userRepository.getById(input.userId);
+
+        if(!existing) {
+            return {success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND};
         }
 
-        const updated = new User(id, username, email, firstName, lastName, bio ?? null, profileImage ?? null, existing.role, existing.passwordHash);
-        const result = await this.userRepository.update(updated);
-
-        if (result.id === 0) {
-            return { success: false, message: 'Update failed', statusCode: 500 };
+        const byUsername = await this.userRepository.getByUsername(input.username);
+        if (byUsername && byUsername.id !== input.userId) {
+            return { success: false, message: 'Username is already taken', errorCode: ErrorCode.ALREADY_EXISTS };            
         }
+        const byEmail = await this.userRepository.getByEmail(input.email);
+        if (byEmail && byEmail.id !== input.userId) {
+            return { success: false, message: 'Email is already taken', errorCode: ErrorCode.ALREADY_EXISTS };
+        }        
 
-        return {
-            success: true,
-            data: new UserDto(result.id, result.username, result.email, result.firstName, result.lastName, result.bio, result.profileImage, result.role),
-        };
+        const updated = await this.userRepository.update(
+            new User(input.userId, input.username, input.email, input.firstName, input.lastName, input.bio ?? null, input.profileImage ?? null, existing.role, existing.passwordHash)
+        );
+ 
+        if (!updated) {
+            return { success: false, message: 'Update failed', errorCode: ErrorCode.INTERNAL_ERROR };
+        }
+ 
+        return { success: true, data: this.toDto(updated) };        
     }
 
-    async updateRole(id: number, role: string): Promise<ServiceResult<boolean>> {
-        const existing = await this.userRepository.getById(id);
-        if (existing.id === 0) {
-            return { success: false, message: 'User not found', statusCode: 404 };
+    async updateRole(input: UpdateRoleInput): Promise<ServiceResult<boolean>> {
+        const existing = await this.userRepository.getById(input.userId);
+        if (!existing) {
+            return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };
         }
-        const result = await this.userRepository.updateRole(id, role);
+        const result = await this.userRepository.updateRole(input.userId, input.role);
         if (!result) {
-            return { success: false, message: 'Role update failed', statusCode: 500 };
+            return { success: false, message: 'Role update failed', errorCode: ErrorCode.INTERNAL_ERROR };
+        }
+        return { success: true, data: true };  
+    }
+
+    async searchUsers(input: SearchUsersInput): Promise<ServiceResult<UserDto[]>> {
+        const users = await this.userRepository.searchByUsername(input.query);
+        return { success: true, data: users.map(u => this.toDto(u)) };        
+    }
+
+     async followUser(input: FollowUserInput): Promise<ServiceResult<boolean>> {
+
+        if (input.followerId === input.followingId) {
+            return { success: false, message: 'You cannot follow yourself', errorCode: ErrorCode.VALIDATION_ERROR };
+        }
+        const target = await this.userRepository.getById(input.followingId);
+        if (!target) {
+            return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };
+        }
+        const alreadyFollowing = await this.userFollowRepository.isFollowing(input.followerId, input.followingId);
+        if (alreadyFollowing) {
+            return { success: false, message: 'Already following this user', errorCode: ErrorCode.ALREADY_EXISTS };
+        }
+        const result = await this.userFollowRepository.follow(input.followerId, input.followingId);
+        if (!result) {
+            return { success: false, message: 'Follow failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
         return { success: true, data: true };
     }
 
-    async searchUsers(query: string): Promise<ServiceResult<UserDto[]>> {
-        const users = await this.userRepository.searchByUsername(query);
-        return {
-            success: true,
-            data: users.map(u => new UserDto(u.id, u.username, u.email, u.firstName, u.lastName, u.bio, u.profileImage, u.role)),
-        };
-    }
-
-    async followUser(followerId: number, followingId: number): Promise<ServiceResult<boolean>> {
-        if (followerId === followingId) {
-            return { success: false, message: 'You cannot follow yourself', statusCode: 400 };
+    async unfollowUser(input: UnfollowUserInput): Promise<ServiceResult<boolean>> {
+        const isFollowing = await this.userFollowRepository.isFollowing(input.followerId, input.followingId); 
+        if (!isFollowing) {
+            return { success: false, message: 'You are not following this user', errorCode: ErrorCode.NOT_FOUND };
         }
-        const target = await this.userRepository.getById(followingId);
-        if (target.id === 0) {
-            return { success: false, message: 'User not found', statusCode: 404 };
-        }
-        const result = await this.userRepository.follow(followerId, followingId);
+        const result = await this.userFollowRepository.unfollow(input.followerId, input.followingId);
         if (!result) {
-            return { success: false, message: 'Follow failed', statusCode: 500 };
+            return { success: false, message: 'Unfollow failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
-        return { success: true, data: true };
+        return { success: true, data: true };        
     }
 
-    async unfollowUser(followerId: number, followingId: number): Promise<ServiceResult<boolean>> {
-        const result = await this.userRepository.unfollow(followerId, followingId);
-        if (!result) {
-            return { success: false, message: 'You are not following this user', statusCode: 400 };
-        }
-        return { success: true, data: true };
+    async getFollowers(input: GetFollowersInput): Promise<ServiceResult<UserDto[]>> {
+        const ids = await this.userFollowRepository.getFollowerIds(input.userId);
+        if (ids.length === 0) return {success: true, data: []};
+        const users = await this.userRepository.getByIds(ids);
+        return { success: true, data: users.map(u => this.toDto(u)) };        
     }
 
-    async getFollowers(id: number): Promise<ServiceResult<UserDto[]>> {
-        const users = await this.userRepository.getFollowers(id);
-        return {
-            success: true,
-            data: users.map(u => new UserDto(u.id, u.username, u.email, u.firstName, u.lastName, u.bio, u.profileImage, u.role)),
-        };
-    }
+     async getFollowing(input: GetFollowingInput): Promise<ServiceResult<UserDto[]>> {
+        const ids = await this.userFollowRepository.getFollowingIds(input.userId);
+        if (ids.length === 0) return { success: true, data: [] };
+        const users = await this.userRepository.getByIds(ids);
+        return { success: true, data: users.map(u => this.toDto(u)) };
+    }   
 
-    async getFollowing(id: number): Promise<ServiceResult<UserDto[]>> {
-        const users = await this.userRepository.getFollowing(id);
-        return {
-            success: true,
-            data: users.map(u => new UserDto(u.id, u.username, u.email, u.firstName, u.lastName, u.bio, u.profileImage, u.role)),
-        };
+    private toDto(u: User): UserDto {
+        return new UserDto(u.id, u.username, u.email, u.firstName, u.lastName, u.bio, u.profileImage, u.role);
     }
 }

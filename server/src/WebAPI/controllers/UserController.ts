@@ -4,6 +4,7 @@ import { authenticate } from '../../Middlewares/authentification/AuthMiddleware'
 import { authorize } from '../../Middlewares/authorization/AuthorizeMiddleware';
 import { UserRole } from '../../Domain/enums/UserRole';
 import { validateProfileUpdate } from '../validators/UserValidator';
+import { sendServiceResult } from '../helpers/responseHelper';
 
 export class UserController {
     private router: Router;
@@ -31,7 +32,7 @@ export class UserController {
     private async getAllUsers(req: Request, res: Response): Promise<void> {
         try {
             const result = await this.userService.getAllUsers();
-            res.status(result.statusCode ?? 200).json(result);
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -44,8 +45,8 @@ export class UserController {
                 res.status(400).json({ success: false, message: 'Search query is required' });
                 return;
             }
-            const result = await this.userService.searchUsers(query.trim());
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.userService.searchUsers({ query: query.trim() });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -53,8 +54,8 @@ export class UserController {
 
     private async getMe(req: Request, res: Response): Promise<void> {
         try {
-            const result = await this.userService.getUserById(req.user!.id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.userService.getUserById({ userId: req.user!.id });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -67,8 +68,8 @@ export class UserController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.userService.getUserById(id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.userService.getUserById({ userId: id });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -82,8 +83,10 @@ export class UserController {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
-            const result = await this.userService.updateProfile(req.user!.id, username, email, firstName, lastName, bio, profileImage);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.userService.updateProfile({
+                userId: req.user!.id, username, email, firstName, lastName, bio, profileImage,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -97,8 +100,8 @@ export class UserController {
                 res.status(400).json({ success: false, message: 'Invalid data' });
                 return;
             }
-            const result = await this.userService.updateRole(id, role);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.userService.updateRole({ userId: id, role });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -111,8 +114,8 @@ export class UserController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.userService.getFollowers(id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.userService.getFollowers({ userId: id });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -125,8 +128,8 @@ export class UserController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.userService.getFollowing(id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.userService.getFollowing({ userId: id });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -139,8 +142,10 @@ export class UserController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.userService.followUser(req.user!.id, followingId);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.userService.followUser({
+                followerId: req.user!.id, followingId,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -153,8 +158,10 @@ export class UserController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.userService.unfollowUser(req.user!.id, followingId);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.userService.unfollowUser({
+                followerId: req.user!.id, followingId,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
