@@ -2,6 +2,7 @@ import { Request, Response, Router } from 'express';
 import { ICommentService } from '../../Domain/services/comments/ICommentService';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { validateCommentContent } from '../validators/CommentValidator';
+import { sendServiceResult } from '../helpers/responseHelper';
 
 export class CommentController {
     private router: Router;
@@ -29,8 +30,8 @@ export class CommentController {
                 res.status(400).json({ success: false, message: 'Invalid post id' });
                 return;
             }
-            const result = await this.commentService.getCommentsByPost(postId);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.commentService.getCommentsByPost({ postId });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -52,8 +53,9 @@ export class CommentController {
                 return;
             }
 
-            const result = await this.commentService.addComment(req.user!.id, postId, content, parentIdNum);
-            res.status(result.statusCode ?? 201).json(result);
+            const result = await this.commentService.addComment({
+                authorId: req.user!.id, postId, content, parentId: parentIdNum,});
+            sendServiceResult(res, result, 201);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -72,8 +74,10 @@ export class CommentController {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
-            const result = await this.commentService.updateComment(commentId, req.user!.id, content);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.commentService.updateComment({ 
+                commentId, requesterId: req.user!.id, content,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -86,8 +90,10 @@ export class CommentController {
                 res.status(400).json({ success: false, message: 'Invalid comment id' });
                 return;
             }
-            const result = await this.commentService.softDeleteComment(commentId, req.user!.id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.commentService.softDeleteComment({
+                commentId, requesterId: req.user!.id,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -100,8 +106,10 @@ export class CommentController {
                 res.status(400).json({ success: false, message: 'Invalid comment id' });
                 return;
             }
-            const result = await this.commentService.likeComment(commentId, req.user!.id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.commentService.likeComment({
+                userId: req.user!.id, commentId,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -114,8 +122,10 @@ export class CommentController {
                 res.status(400).json({ success: false, message: 'Invalid comment id' });
                 return;
             }
-            const result = await this.commentService.unlikeComment(commentId, req.user!.id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.commentService.unlikeComment({
+                userId: req.user!.id, commentId,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }

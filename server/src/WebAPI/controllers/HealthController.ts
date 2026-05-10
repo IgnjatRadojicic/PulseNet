@@ -3,6 +3,8 @@ import { getHealthStatus, promoteSlaveToMaster } from '../../Database/connection
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { authorize } from '../../Middlewares/authorization/AuthorizeMiddleware';
 import { UserRole } from '../../Domain/enums/UserRole';
+import { sendServiceResult } from '../helpers/responseHelper';
+import { ErrorCode } from '../../Domain/enums/ErrorCode';
 
 export class HealthController {
     private router: Router;
@@ -19,15 +21,18 @@ export class HealthController {
     }
 
     private healthCheck(req: Request, res: Response): void {
-        res.status(200).json({ success: true, message: 'Server is running' });
+        const result = { success: true, data: { message: 'Server is running' } };
+        sendServiceResult(res, result);
     }
 
     private dbHealth(req: Request, res: Response): void {
         try {
             const status = getHealthStatus();
-            res.status(200).json({ success: true, data: status });
+            const result = { success: true, data: status };
+            sendServiceResult(res, result);
         } catch {
-            res.status(500).json({ success: false, message: 'Failed to retrieve DB health status' });
+            const result = { success: false, message: 'Failed to retrieve DB health status', errorCode: ErrorCode.INTERNAL_ERROR };
+            sendServiceResult(res, result);
         }
     }
 
@@ -39,9 +44,10 @@ export class HealthController {
                 return;
             }
             const result = promoteSlaveToMaster(Number(slaveIndex));
-            res.status(result.statusCode ?? 200).json(result);
+            sendServiceResult(res, result);
         } catch {
-            res.status(500).json({ success: false, message: 'Failover failed' });
+            const result = { success: false, message: 'Failover failed', errorCode: ErrorCode.INTERNAL_ERROR };
+            sendServiceResult(res, result);
         }
     }
 

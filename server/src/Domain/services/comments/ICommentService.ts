@@ -1,27 +1,29 @@
 import { CommentDto } from '../../DTOs/comments/CommentDto';
 import { ServiceResult } from '../../types/ServiceResult';
+import {
+    AddCommentInput,
+    UpdateCommentInput,
+    DeleteCommentInput,
+    GetCommentsByPostInput,
+    FlagCommentInput,
+    LikeCommentInput,
+    UnlikeCommentInput,
+    FindRootCommentsByPostInput,
+    FindRepliesByCommentIdInput,
+    FindRepliesPaginatedInput,
+    GetReplyCountInput,
+} from '../../types/inputs/CommentInputs';
 
 export interface ICommentService {
-    getCommentsByPost(postId: number): Promise<ServiceResult<CommentDto[]>>;
-
-    addComment(
-        authorId: number,
-        postId: number,
-        content: string,
-        parentId: number | null
-    ): Promise<ServiceResult<CommentDto>>;
-
-    updateComment(
-        commentId: number,
-        authorId: number,
-        content: string
-    ): Promise<ServiceResult<CommentDto>>;
-
-    softDeleteComment(
-        commentId: number,
-        actorId: number
-    ): Promise<ServiceResult<boolean>>;
-
-    likeComment(commentId: number, userId: number): Promise<ServiceResult<boolean>>;
-    unlikeComment(commentId: number, userId: number): Promise<ServiceResult<boolean>>;
+    getCommentsByPost(input: GetCommentsByPostInput): Promise<ServiceResult<CommentDto[]>>;
+    addComment(input: AddCommentInput): Promise<ServiceResult<CommentDto>>;
+    updateComment(input: UpdateCommentInput): Promise<ServiceResult<CommentDto>>;
+    softDeleteComment(input: DeleteCommentInput): Promise<ServiceResult<boolean>>;
+    flagComment(input: FlagCommentInput): Promise<ServiceResult<boolean>>;
+    likeComment(input: LikeCommentInput): Promise<ServiceResult<boolean>>;
+    unlikeComment(input: UnlikeCommentInput): Promise<ServiceResult<boolean>>;
+    findRootCommentsByPost(input: FindRootCommentsByPostInput): Promise<ServiceResult<CommentDto[]>>;
+    findRepliesByCommentId(input: FindRepliesByCommentIdInput): Promise<ServiceResult<CommentDto[]>>;
+    findRepliesPaginated(input: FindRepliesPaginatedInput): Promise<ServiceResult<CommentDto[]>>;
+    getReplyCount(input: GetReplyCountInput): Promise<ServiceResult<number>>;
 }

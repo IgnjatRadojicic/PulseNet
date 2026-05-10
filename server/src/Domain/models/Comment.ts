@@ -5,7 +5,7 @@ export class Comment {
         public authorId: number = 0,
         public parentId: number | null = null,
         public commentLikes: number = 0,
-        public replies: Comment[] = [],
+        //public replies: Comment[] = [],
         public content: string = '',
         public isDeleted: boolean = false,
         public isFlagged: boolean = false,
