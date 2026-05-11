@@ -1,11 +1,14 @@
 import { PostDto } from '../../Domain/DTOs/posts/PostDto';
 import { Post } from '../../Domain/models/Post';
+import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { ICommunityRepository } from '../../Domain/repositories/communities/ICommunityRepository';
 import { IPostRepository } from '../../Domain/repositories/posts/IPostRepository';
 import { ITagRepository } from '../../Domain/repositories/tags/ITagRepository';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
+import { IUserService } from '../../Domain/services/users/IUserService';    
 import { IPostService, PostSortOption } from '../../Domain/services/posts/IPostService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
+import { ok } from 'node:assert/strict';
 
 export class PostService implements IPostService {
     public constructor(
@@ -31,7 +34,7 @@ export class PostService implements IPostService {
             post.communityId, community.name,
             post.authorId, author.username,
             likeCount, commentCount,
-            tags.map(t => t.name),
+            tags.map((t: PostDto) => t.name),
             post.createdAt, post.updatedAt
         );
     }
@@ -53,9 +56,9 @@ export class PostService implements IPostService {
 
         const allTagIds = [...new Set([...tagIdMap.values()].flat())];
         const allTags = await this.tagRepository.getByIds(allTagIds);
-        const tagMap = new Map(allTags.map(t => [t.id, t.name]));
-        const authorMap = new Map(authors.map(u => [u.id, u.username]));
-        const communityMap = new Map(communities.map(c => [c.id, c.name]));
+        const tagMap = new Map(allTags.map((t: PostDto) => [t.id, t.name]));
+        const authorMap = new Map(authors.map((u: PostDto) => [u.id, u.username]));
+        const communityMap = new Map(communities.map((c: PostDto) => [c.id, c.name]));
 
         return posts.map(post => new PostDto(
             post.id, post.title, post.content, post.mediaUrl,
@@ -63,7 +66,7 @@ export class PostService implements IPostService {
             post.authorId, authorMap.get(post.authorId) ?? '',
             likeCounts.get(post.id) ?? 0,
             commentCounts.get(post.id) ?? 0,
-            (tagIdMap.get(post.id) ?? []).map(id => tagMap.get(id) ?? '').filter(Boolean),
+            (tagIdMap.get(post.id) ?? []).map((id: number) => tagMap.get(id) ?? '').filter(Boolean),
             post.createdAt, post.updatedAt
         ));
     }
@@ -78,12 +81,12 @@ export class PostService implements IPostService {
     ): Promise<ServiceResult<PostDto>> {
         const community = await this.communityRepository.getById(communityId);
         if (community.id === 0) {
-            return { success: false, message: 'Community not found', statusCode: 404 };
+            return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         const member = await this.communityRepository.getMember(authorId, communityId);
         if (member.userId === 0 || member.status !== 'active') {
-            return { success: false, message: 'You must be an active member to post', statusCode: 403 };
+            return { success: false, message: 'You must be an active member to post', errorCode: ErrorCode.FORBIDDEN };
         }
 
         const post = await this.postRepository.create(
@@ -91,19 +94,19 @@ export class PostService implements IPostService {
         );
 
         if (post.id === 0) {
-            return { success: false, message: 'Failed to create post', statusCode: 500 };
+            return { success: false, message: 'Failed to create post', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
         await this.postRepository.addTags(post.id, tagIds);
 
         const dto = await this.buildPostDto(post);
-        return { success: true, data: dto, statusCode: 201 };
+        return { success: true, data: dto };
     }
 
     async getPostById(id: number): Promise<ServiceResult<PostDto>> {
         const post = await this.postRepository.getById(id);
         if (post.id === 0) {
-            return { success: false, message: 'Post not found', statusCode: 404 };
+            return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
         const dto = await this.buildPostDto(post);
         return { success: true, data: dto };
@@ -112,7 +115,7 @@ export class PostService implements IPostService {
     async getCommunityPosts(communityId: number, sort: PostSortOption): Promise<ServiceResult<PostDto[]>> {
         const community = await this.communityRepository.getById(communityId);
         if (community.id === 0) {
-            return { success: false, message: 'Community not found', statusCode: 404 };
+            return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         const posts = await this.postRepository.getByCommunityId(communityId);
@@ -126,10 +129,10 @@ export class PostService implements IPostService {
 
     async getFeed(userId: number): Promise<ServiceResult<PostDto[]>> {
         const communities = await this.communityRepository.getByUserId(userId);
-        const communityIds = communities.map(c => c.id);
+        const communityIds = communities.map((c: PostDto) => c.id);
 
         const following = await this.userRepository.getFollowing(userId);
-        const followingIds = following.map(u => u.id);
+        const followingIds = following.map((u: PostDto) => u.id);
 
         const [communityPostIds, followedPostIds] = await Promise.all([
             this.postRepository.getCommunityPostIds(communityIds),
@@ -140,7 +143,7 @@ export class PostService implements IPostService {
         if (uniqueIds.length === 0) return { success: true, data: [] };
 
         const posts = await this.postRepository.getByIds(uniqueIds);
-        posts.sort((a, b) => {
+        posts.sort((a: PostDto, b: PostDto) => {
             const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             return bTime - aTime;
@@ -159,7 +162,7 @@ export class PostService implements IPostService {
     ): Promise<ServiceResult<PostDto>> {
         const post = await this.postRepository.getById(id);
         if (post.id === 0) {
-            return { success: false, message: 'Post not found', statusCode: 404 };
+            return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         const member = await this.communityRepository.getMember(requesterId, post.communityId);
@@ -167,7 +170,7 @@ export class PostService implements IPostService {
         const isModerator = member.role === 'moderator';
 
         if (!isAuthor && !isModerator) {
-            return { success: false, message: 'Not authorized to update this post', statusCode: 403 };
+            return { success: false, message: 'Not authorized to update this post', errorCode: ErrorCode.FORBIDDEN };
         }
 
         const updated = await this.postRepository.update(
@@ -175,7 +178,7 @@ export class PostService implements IPostService {
         );
 
         if (updated.id === 0) {
-            return { success: false, message: 'Update failed', statusCode: 500 };
+            return { success: false, message: 'Update failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
         const dto = await this.buildPostDto(updated);
@@ -185,7 +188,7 @@ export class PostService implements IPostService {
     async deletePost(id: number, requesterId: number): Promise<ServiceResult<boolean>> {
         const post = await this.postRepository.getById(id);
         if (post.id === 0) {
-            return { success: false, message: 'Post not found', statusCode: 404 };
+            return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         const member = await this.communityRepository.getMember(requesterId, post.communityId);
@@ -193,12 +196,12 @@ export class PostService implements IPostService {
         const isModerator = member.role === 'moderator';
 
         if (!isAuthor && !isModerator) {
-            return { success: false, message: 'Not authorized to delete this post', statusCode: 403 };
+            return { success: false, message: 'Not authorized to delete this post', errorCode: ErrorCode.FORBIDDEN };
         }
 
         const result = await this.postRepository.delete(id);
         if (!result) {
-            return { success: false, message: 'Delete failed', statusCode: 500 };
+            return { success: false, message: 'Delete failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
         return { success: true, data: true };
@@ -207,18 +210,18 @@ export class PostService implements IPostService {
     async likePost(userId: number, postId: number): Promise<ServiceResult<boolean>> {
         const post = await this.postRepository.getById(postId);
         if (post.id === 0) {
-            return { success: false, message: 'Post not found', statusCode: 404 };
+            return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
         if (post.authorId === userId) {
-            return { success: false, message: 'You cannot like your own post', statusCode: 400 };
+            return { success: false, message: 'You cannot like your own post', errorCode: ErrorCode.UNAUTHORIZED };
         }
         const alreadyLiked = await this.postRepository.hasLiked(userId, postId);
         if (alreadyLiked) {
-            return { success: false, message: 'You have already liked this post', statusCode: 409 };
+            return { success: false, message: 'You have already liked this post', errorCode: ErrorCode.CONFLICT };
         }
         const result = await this.postRepository.addLike(userId, postId);
         if (!result) {
-            return { success: false, message: 'Failed to like post', statusCode: 500 };
+            return { success: false, message: 'Failed to like post', errorCode: ErrorCode.INTERNAL_ERROR };
         }
         return { success: true, data: true };
     }
@@ -226,11 +229,11 @@ export class PostService implements IPostService {
     async unlikePost(userId: number, postId: number): Promise<ServiceResult<boolean>> {
         const hasLiked = await this.postRepository.hasLiked(userId, postId);
         if (!hasLiked) {
-            return { success: false, message: 'You have not liked this post', statusCode: 400 };
+            return { success: false, message: 'You have not liked this post', errorCode: ErrorCode.UNAUTHORIZED };
         }
         const result = await this.postRepository.removeLike(userId, postId);
         if (!result) {
-            return { success: false, message: 'Failed to unlike post', statusCode: 500 };
+            return { success: false, message: 'Failed to unlike post', errorCode: ErrorCode.INTERNAL_ERROR };
         }
         return { success: true, data: true };
     }
@@ -238,18 +241,18 @@ export class PostService implements IPostService {
     async addTag(postId: number, tagId: number, requesterId: number): Promise<ServiceResult<boolean>> {
         const post = await this.postRepository.getById(postId);
         if (post.id === 0) {
-            return { success: false, message: 'Post not found', statusCode: 404 };
+            return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
         if (post.authorId !== requesterId) {
-            return { success: false, message: 'Only the author can add tags', statusCode: 403 };
+            return { success: false, message: 'Only the author can add tags', errorCode: ErrorCode.FORBIDDEN };
         }
         const tag = await this.tagRepository.getById(tagId);
         if (tag.id === 0) {
-            return { success: false, message: 'Tag not found', statusCode: 404 };
+            return { success: false, message: 'Tag not found', errorCode: ErrorCode.NOT_FOUND };
         }
         const result = await this.postRepository.addTag(postId, tagId);
         if (!result) {
-            return { success: false, message: 'Failed to add tag', statusCode: 500 };
+            return { success: false, message: 'Failed to add tag', errorCode: ErrorCode.INTERNAL_ERROR };
         }
         return { success: true, data: true };
     }
@@ -257,14 +260,14 @@ export class PostService implements IPostService {
     async removeTag(postId: number, tagId: number, requesterId: number): Promise<ServiceResult<boolean>> {
         const post = await this.postRepository.getById(postId);
         if (post.id === 0) {
-            return { success: false, message: 'Post not found', statusCode: 404 };
+            return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
         if (post.authorId !== requesterId) {
-            return { success: false, message: 'Only the author can remove tags', statusCode: 403 };
+            return { success: false, message: 'Only the author can remove tags', errorCode: ErrorCode.FORBIDDEN };
         }
         const result = await this.postRepository.removeTag(postId, tagId);
         if (!result) {
-            return { success: false, message: 'Failed to remove tag', statusCode: 500 };
+            return { success: false, message: 'Failed to remove tag', errorCode: ErrorCode.INTERNAL_ERROR };
         }
         return { success: true, data: true };
     }

@@ -118,7 +118,7 @@ export class UserService implements IUserService {
         return { success: true, data: users.map(u => this.toDto(u)) };        
     }
 
-     async getFollowing(input: GetFollowingInput): Promise<ServiceResult<UserDto[]>> {
+    async getFollowing(input: GetFollowingInput): Promise<ServiceResult<UserDto[]>> {
         const ids = await this.userFollowRepository.getFollowingIds(input.userId);
         if (ids.length === 0) return { success: true, data: [] };
         const users = await this.userRepository.getByIds(ids);
