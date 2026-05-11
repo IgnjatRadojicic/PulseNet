@@ -2,7 +2,7 @@ import { UserDto } from '../../Domain/DTOs/users/UserDto';
 import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { User } from '../../Domain/models/User';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
-import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFollowRepository.ts';
+import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFollowRepository';
 import { IUserService } from '../../Domain/services/users/IUserService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import {

@@ -5,7 +5,7 @@ import { ICommentLikeRepository } from '../../Domain/repositories/comments/IComm
 import { ICommentQueryRepository } from '../../Domain/repositories/comments/ICommentQueryRepository';
 import { ICommentReadWriteRepository } from '../../Domain/repositories/comments/ICommentReadWriteRepository';
 import { ICommunityRepository } from '../../Domain/repositories/communities/ICommunityRepository';
-import { IPostRepository } from '../../Domain/repositories/posts/IPostRepository';
+import { IPostRepository } from '../../Domain/repositories/post_repository/IPostRepository';
 import { ICommentService } from '../../Domain/services/comments/ICommentService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import {
@@ -33,13 +33,13 @@ export class CommentService implements ICommentService {
 
     async addComment(input: AddCommentInput): Promise<ServiceResult<CommentDto>> {
         const post = await this.postRepository.getById(input.postId);
-        if (post.id === 0) {
+        if (!post) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         if (input.parentId !== null) {
-            const parent = await this.commentReadWriteRepository.getById(input.parentId) ?? new Comment();
-            if (parent.id === 0) {
+            const parent = await this.commentReadWriteRepository.getById(input.parentId);
+            if (!parent) {
                 return { success: false, message: 'Parent comment not found', errorCode: ErrorCode.NOT_FOUND };
             }
             if (parent.postId !== input.postId) {
@@ -51,10 +51,9 @@ export class CommentService implements ICommentService {
         }
 
         const comment = await this.commentReadWriteRepository.create(
-            new Comment(0, input.postId, input.authorId, input.parentId ?? null, 0, input.content, false, false, new Date(), new Date())
-        ) ?? new Comment();
+            new Comment(0, input.postId, input.authorId, input.parentId ?? null, 0, input.content, false, false, new Date(), new Date()));
 
-        if (comment.id === 0) {
+        if (!comment) {
             return { success: false, message: 'Failed to create comment', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
@@ -64,7 +63,7 @@ export class CommentService implements ICommentService {
 
     async getCommentsByPost(input: GetCommentsByPostInput): Promise<ServiceResult<CommentDto[]>> {
         const post = await this.postRepository.getById(input.postId);
-        if (post.id === 0) {
+        if (!post) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -82,8 +81,8 @@ export class CommentService implements ICommentService {
     }
 
     async updateComment(input: UpdateCommentInput): Promise<ServiceResult<CommentDto>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId) ?? new Comment();
-        if (comment.id === 0) {
+        const comment = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!comment) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
         if (comment.authorId !== input.requesterId) {
@@ -104,12 +103,16 @@ export class CommentService implements ICommentService {
     }
 
     async softDeleteComment(input: DeleteCommentInput): Promise<ServiceResult<boolean>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId) ?? new Comment();
-        if (comment.id === 0) {
+        const comment = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!comment) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         const post = await this.postRepository.getById(comment.postId);
+        if (!post) {
+            return { success: false, message: 'Associated post not found', errorCode: ErrorCode.NOT_FOUND };
+        }
+
         const member = await this.communityRepository.getMember(input.requesterId, post.communityId);
         const isAuthor = comment.authorId === input.requesterId;
         const isModerator = member.role === 'moderator';
@@ -127,8 +130,8 @@ export class CommentService implements ICommentService {
     }
 
     async flagComment(input: FlagCommentInput): Promise<ServiceResult<boolean>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId) ?? new Comment();
-        if (comment.id === 0) {
+        const comment = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!comment) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -146,8 +149,8 @@ export class CommentService implements ICommentService {
     }
 
     async likeComment(input: LikeCommentInput): Promise<ServiceResult<boolean>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId) ?? new Comment();
-        if (comment.id === 0) {
+        const comment = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!comment) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -165,8 +168,8 @@ export class CommentService implements ICommentService {
     }
 
     async unlikeComment(input: UnlikeCommentInput): Promise<ServiceResult<boolean>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId) ?? new Comment();
-        if (comment.id === 0) {
+        const comment = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!comment) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -195,8 +198,8 @@ export class CommentService implements ICommentService {
     }
 
     async findRepliesByCommentId(input: FindRepliesByCommentIdInput): Promise<ServiceResult<CommentDto[]>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId) ?? new Comment();
-        if (comment.id === 0) {
+        const comment = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!comment) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -206,8 +209,8 @@ export class CommentService implements ICommentService {
     }
 
     async findRepliesPaginated(input: FindRepliesPaginatedInput): Promise<ServiceResult<CommentDto[]>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId) ?? new Comment();
-        if (comment.id === 0) {
+        const comment = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!comment) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -221,8 +224,8 @@ export class CommentService implements ICommentService {
     }
 
     async getReplyCount(input: GetReplyCountInput): Promise<ServiceResult<number>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId) ?? new Comment();
-        if (comment.id === 0) {
+        const comment = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!comment) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
