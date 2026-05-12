@@ -1,8 +1,5 @@
 import { IPostTagRepository } from '../../../Domain/repositories/post_repository/IPostTagRepository';
-import { Post } from '../../../Domain/models/Post';
-import { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { getReadConnection, getWriteConnection } from '../../connection/db';
-import { mapPost } from '../../mappers/PostMapper';
+import { RowDataPacket } from 'mysql2';
 import { BaseRepository } from '../BaseRepository';
 
 export class PostTagRepository extends BaseRepository implements IPostTagRepository {
@@ -12,7 +9,7 @@ export class PostTagRepository extends BaseRepository implements IPostTagReposit
             'INSERT IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)',
             [postId, tagId]
         );
-        return result !== null;
+        return (result !== null);
     }
 
     async addTags(postId: number, tagIds: number[]): Promise<boolean> {
@@ -23,7 +20,7 @@ export class PostTagRepository extends BaseRepository implements IPostTagReposit
             `INSERT IGNORE INTO post_tags (post_id, tag_id) VALUES ${placeholders}`,
             results
         );
-        return result !== null;
+        return (result !== null);
     }
 
     async removeTag(postId: number, tagId: number): Promise<boolean> {

@@ -1,9 +1,5 @@
 import { IPostLikeRepository } from '../../../Domain/repositories/post_repository/IPostLikeRepository';
-import { Post } from '../../../Domain/models/Post';
-import { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { getReadConnection, getWriteConnection } from '../../connection/db';
-import { mapPost } from '../../mappers/PostMapper';
-import { ErrorCode } from '../../../Domain/enums/ErrorCode';
+import { RowDataPacket } from 'mysql2';
 import { BaseRepository } from '../BaseRepository';
 
 export class PostLikeRepository extends BaseRepository implements IPostLikeRepository {
@@ -13,7 +9,7 @@ export class PostLikeRepository extends BaseRepository implements IPostLikeRepos
             'INSERT IGNORE INTO post_likes (user_id, post_id) VALUES (?, ?)',
             [userId, postId]
         );
-        return (!result?.insertId) !== null;
+        return result !== null;
     }
 
     async removeLike(userId: number, postId: number): Promise<boolean> {
