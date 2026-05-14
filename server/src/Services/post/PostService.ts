@@ -2,40 +2,45 @@ import { PostDto } from '../../Domain/DTOs/posts/PostDto';
 import { Post } from '../../Domain/models/Post';
 import { User } from '../../Domain/models/User';
 import { Tag } from '../../Domain/models/Tag';
-import { Like } from '../../Domain/models/Like';
 import { Community } from '../../Domain/models/Community';
 import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { ICommunityRepository } from '../../Domain/repositories/communities/ICommunityRepository';
 import { IPostRepository } from '../../Domain/repositories/posts/IPostRepository';
 import { IPostLikeRepository } from '../../Domain/repositories/posts/IPostLikeRepository';
 import { IPostTagRepository } from '../../Domain/repositories/posts/IPostTagRepository'
+import { IPostCommentRepository } from '../../Domain/repositories/posts/IPostCommentRepository';
 import { ITagRepository } from '../../Domain/repositories/tags/ITagRepository';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFollowRepository';
-import { IUserService } from '../../Domain/services/users/IUserService';    
 import { IPostService, PostSortOption } from '../../Domain/services/posts/IPostService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 
 import * as PostInputs from '../../Domain/types/inputs/PostInputs';
+import { FollowUserInput } from '../../Domain/types/inputs/UserInputs';
+
+import { ICommentLikeRepository } from '../../Domain/repositories/comments/ICommentLikeRepository';
 
 export class PostService implements IPostService {
     public constructor(
         private postRepository: IPostRepository,
         private postLikeRepository: IPostLikeRepository,
         private postTagRepository: IPostTagRepository,
+        private postCommentRepository: IPostCommentRepository,
         private userRepository: IUserRepository,
         private userFollowRepository: IUserFollowRepository,
         private communityRepository: ICommunityRepository,
-        private tagRepository: ITagRepository
+        private tagRepository: ITagRepository,
+        private commentLikeRepository: ICommentLikeRepository,
+        private followUserInput: FollowUserInput
     ) {}
 
     private async buildPostDto(post: Post): Promise<PostDto> {
         const [author, community, likeCount, commentCount, tagIds] = await Promise.all([
             this.userRepository.getById(post.authorId),
             this.communityRepository.getById(post.communityId),
-            this.postRepository.getLikeCount(post.id),
-            this.postRepository.getCommentCount(post.id),
-            this.postRepository.getTagIds(post.id),
+            this.postLikeRepository.getLikeCount(post.id),
+            this.postCommentRepository.getCommentCount(post.id),
+            this.postTagRepository.getTagIds(post.id),
         ]);
 
         const tags = await this.tagRepository.getByIds(tagIds);
@@ -45,13 +50,13 @@ export class PostService implements IPostService {
             post.communityId, community.name,
             post.authorId, author.username,
             likeCount, commentCount,
-            tags.map((t: PostDto) => t.name),
+            tags.map((t: Tag) => t.name),
             post.createdAt, post.updatedAt
         );
     }
 
     private async buildPostDtos(posts: Post[]): Promise<PostDto[]> {
-        if (posts.length === 0) return [];
+        if (!posts || posts.length === 0) return [];
 
         const postIds = posts.map(p => p.id);
         const authorIds = [...new Set(posts.map(p => p.authorId))];
@@ -60,9 +65,9 @@ export class PostService implements IPostService {
         const [authors, communities, likeCounts, commentCounts, tagIdMap] = await Promise.all([
             this.userRepository.getByIds(authorIds),
             this.communityRepository.getByIds(communityIds),
-            this.postRepository.getLikeCountBatch(postIds),
-            this.postRepository.getCommentCountBatch(postIds),
-            this.postRepository.getTagIdsBatch(postIds),
+            this.postLikeRepository.getLikeCountBatch(postIds),
+            this.postCommentRepository.getCommentCountBatch(postIds),
+            this.postTagRepository.getTagIdsBatch(postIds),
         ]);
 
         const allTagIds = [...new Set([...tagIdMap.values()].flat())];
@@ -84,12 +89,12 @@ export class PostService implements IPostService {
 
     async createPost(createPostInput: PostInputs.CreatePostInput): Promise<ServiceResult<PostDto>> {
         const community = await this.communityRepository.getById(createPostInput.communityId);
-        if (community.id === 0) {
+        if (!community) {
             return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         const member = await this.communityRepository.getMember(createPostInput.authorId, createPostInput.communityId);
-        if (member.userId === 0 || member.status !== 'active') {
+        if (!member || member.status !== 'active') {
             return { success: false, message: 'You must be an active member to post', errorCode: ErrorCode.FORBIDDEN };
         }
 
@@ -97,7 +102,7 @@ export class PostService implements IPostService {
             new Post(0, createPostInput.title, createPostInput.content, createPostInput.mediaUrl, createPostInput.communityId, createPostInput.authorId)
         );
 
-        if (post.id === 0) {
+        if (!post) {
             return { success: false, message: 'Failed to create post', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
@@ -133,10 +138,14 @@ export class PostService implements IPostService {
 
     async getFeed(getFeedInput: PostInputs.GetFeedInput): Promise<ServiceResult<PostDto[]>> {
         const communities = await this.communityRepository.getByUserId(getFeedInput.userId);
-        const communityIds = communities.map((c: PostDto) => c.id);
 
-        const following = await this.userFollowRepository.getFollowerIds(getFeedInput.userId);
-        const followingIds = following.map((u: PostDto) => u.id);
+        if (!communities || communities.length === 0) {
+            return { success: false, message: 'This user is not in any community', errorCode: ErrorCode.NOT_FOUND };
+        }
+
+        const communityIds = communities.map((c: Community) => c.id);
+
+        const followingIds = await this.userFollowRepository.getFollowingIds(getFeedInput.userId);
 
         const [communityPostIds, followedPostIds] = await Promise.all([
             this.postRepository.getCommunityPostIds(communityIds),
@@ -144,7 +153,9 @@ export class PostService implements IPostService {
         ]);
 
         const uniqueIds = [...new Set([...communityPostIds, ...followedPostIds])];
-        if (uniqueIds.length === 0) return { success: true, data: [] };
+        if (uniqueIds.length === 0) {
+            return { success: false, message: 'No posts found', errorCode: ErrorCode.NOT_FOUND };   
+        }
 
         const posts = await this.postRepository.getByIds(uniqueIds);
         posts.sort((a: PostDto, b: PostDto) => {
@@ -159,7 +170,7 @@ export class PostService implements IPostService {
 
     async updatePost(updatePostInput: PostInputs.UpdatePostInput): Promise<ServiceResult<PostDto>> {
         const post = await this.postRepository.getById(updatePostInput.postId);
-        if (post.id === 0) {
+        if (!post) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -175,7 +186,7 @@ export class PostService implements IPostService {
             new Post(updatePostInput.postId, updatePostInput.title, updatePostInput.content, updatePostInput.mediaUrl, post.communityId, post.authorId)
         );
 
-        if (updated.id === 0) {
+        if (!updated) {
             return { success: false, message: 'Update failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 

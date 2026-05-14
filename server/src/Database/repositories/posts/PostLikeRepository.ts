@@ -38,7 +38,7 @@ export class PostLikeRepository extends BaseRepository implements IPostLikeRepos
     }
 
     async getLikeCountBatch(postIds: number[]): Promise<Map<number, number>> {
-        if (postIds.length === 0) return new Map<number, number>();
+        if (!postIds || postIds.length === 0) return new Map<number, number>();
         const placeholders = this.buildPlaceholders(postIds);
         const result = await this.executeRead(
             `SELECT post_id, COUNT(*) as count FROM post_likes WHERE post_id IN (${placeholders}) GROUP BY post_id`,

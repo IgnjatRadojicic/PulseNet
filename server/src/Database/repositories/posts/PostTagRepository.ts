@@ -13,7 +13,7 @@ export class PostTagRepository extends BaseRepository implements IPostTagReposit
     }
 
     async addTags(postId: number, tagIds: number[]): Promise<boolean> {
-        if (tagIds.length === 0) return true;
+        if (!tagIds || tagIds.length === 0) return false;
         const placeholders = tagIds.map(() => '(?, ?)').join(', ');
         const results = tagIds.flatMap(tagId => [postId, tagId]);
         const result = await this.executeWrite(
@@ -41,7 +41,7 @@ export class PostTagRepository extends BaseRepository implements IPostTagReposit
     }
 
     async getTagIdsBatch(postIds: number[]): Promise<Map<number, number[]>> {
-        if (postIds.length === 0) return new Map<number, number[]>();
+        if (!postIds || postIds.length === 0) return new Map<number, number[]>();
         const placeholders = this.buildPlaceholders(postIds);
         const result = await this.executeRead(
             `SELECT post_id, tag_id FROM post_tags WHERE post_id IN (${placeholders})`,

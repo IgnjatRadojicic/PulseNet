@@ -27,7 +27,7 @@ export class PostRepository extends BaseRepository implements IPostRepository {
     }
 
     async getByIds(ids: number[]): Promise<Post[]> {
-        if (ids.length === 0) return [];
+        if (!ids || ids.length === 0) return [];
         const placeholders = ids.map(() => '?').join(',');
         const result = await this.executeRead(
             `SELECT id, title, content, media_url, community_id, author_id, created_at, updated_at FROM posts WHERE id IN (${placeholders})`,
@@ -56,7 +56,7 @@ export class PostRepository extends BaseRepository implements IPostRepository {
     }
 	
 	async getCommunityPostIds(communityIds: number[]): Promise<number[]> {
-        if (communityIds.length === 0) return [];
+        if (!communityIds || communityIds.length === 0) return [];
         const placeholders = communityIds.map(() => '?').join(',');
         const result = await this.executeRead(
                 `SELECT id FROM posts WHERE community_id IN (${placeholders})`,
@@ -67,7 +67,7 @@ export class PostRepository extends BaseRepository implements IPostRepository {
 	}
 
     async getFollowedAuthorPostIds(authorIds: number[]): Promise<number[]> {
-        if (authorIds.length === 0) return [];
+        if (!authorIds || authorIds.length === 0) return [];
         const placeholders = authorIds.map(() => '?').join(',');
         const result = await this.executeRead(
             `SELECT id FROM posts WHERE author_id IN (${placeholders})`,
@@ -78,6 +78,7 @@ export class PostRepository extends BaseRepository implements IPostRepository {
     }
 
     async update(post: Post): Promise<Post | null> {
+        if (!post) return null;
         const result = await this.executeWrite(
             'UPDATE posts SET title = ?, content = ?, media_url = ? WHERE id = ?',
             [post.title, post.content, post.mediaUrl, post.id]
