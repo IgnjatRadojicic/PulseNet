@@ -1,16 +1,24 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { ProtectedRoute } from './components/protected_route/ProtectedRoute';
-import LandingPage from './pages/landing/LandingPage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import NotFoundPage from './pages/not_found/NotFoundPage';
+import {
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { authApi } from "./api_services/auth/AuthAPIService";
+import LandingPage from "./pages/landing/LandingPage";
+import PrijavaStranica from "./pages/auth/PrijavaStranica";
+import RegistracijaStranica from "./pages/auth/RegistracijaStranica";
+import NotFoundStranica from "./pages/not_found/NotFoundPage";
+// import { usersApi } from "./api_services/users/UsersAPIService";
+import TestCommentsPage from "./pages/comments/CommentsPage";
 
-export default function App() {
-    return (
-        <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<PrijavaStranica authApi={authApi} />} />
+      <Route path="/register" element={<RegistracijaStranica authApi={authApi} />} />
+      <Route path="/404" element={<NotFoundStranica />} />
+      <Route path="/comments" element={<TestCommentsPage />} />
 
             <Route
                 path="/feed"
