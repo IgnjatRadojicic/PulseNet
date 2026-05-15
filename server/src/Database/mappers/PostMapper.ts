@@ -1,7 +1,6 @@
 import { RowDataPacket } from 'mysql2';
 import { Post } from '../../Domain/models/Post';
 
-
 export const SELECT_FIELDS = 'id, title, content, media_url, community_id, author_id, created_at, updated_at';
 
 export function mapPost(r: RowDataPacket): Post {

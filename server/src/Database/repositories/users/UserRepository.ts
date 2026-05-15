@@ -14,8 +14,7 @@ export class UserRepository extends BaseRepository implements IUserRepository {
         if (!result?.insertId) return null;
         return new User(result.insertId, user.username, user.email, user.firstName, user.lastName, user.bio, user.profileImage, user.role, user.passwordHash);
     }
-
-
+ 
     async getById(id: number): Promise<User | null> {
         return this.executeReadOne(`SELECT ${USER_FIELDS} FROM users WHERE id = ?`, [id], mapUser);
     }
