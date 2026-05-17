@@ -8,6 +8,8 @@ export class PostDto {
         public communityName: string = '',
         public authorId: number = 0,
         public authorUsername: string = '',
+        public authorProfileImage: string | null = null,
+        public isLiked: boolean = false,
         public likeCount: number = 0,
         public commentCount: number = 0,
         public tags: string[] = [],
