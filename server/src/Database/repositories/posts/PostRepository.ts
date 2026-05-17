@@ -1,8 +1,8 @@
-import { IPostRepository } from '../../../Domain/repositories/posts/IPostRepository';
-import { Post } from '../../../Domain/models/Post';
-import { RowDataPacket } from 'mysql2';
 import { BaseRepository } from '../BaseRepository';
-import { mapPost } from '../../mappers/PostMapper';
+import { IPostRepository } from '../../../Domain/repositories/post_repository/IPostRepository';
+import { Post } from '../../../Domain/models/Post';
+import { mapPost, SELECT_FIELDS } from '../../mappers/PostMapper';
+import { RowDataPacket } from 'mysql2';
 
 export class PostRepository extends BaseRepository implements IPostRepository {
 
@@ -11,82 +11,79 @@ export class PostRepository extends BaseRepository implements IPostRepository {
             'INSERT INTO posts (title, content, media_url, community_id, author_id) VALUES (?, ?, ?, ?, ?)',
             [post.title, post.content, post.mediaUrl, post.communityId, post.authorId]
         );
-        if (result?.insertId) {
-            return new Post(result.insertId, post.title, post.content, post.mediaUrl, post.communityId, post.authorId);
-        }
-        return null;
+        if (!result?.insertId) return null;
+        return new Post(result.insertId, post.title, post.content, post.mediaUrl, post.communityId, post.authorId);
     }
 
     async getById(id: number): Promise<Post | null> {
-        const result = await this.executeReadOne(
-            'SELECT id, title, content, media_url, community_id, author_id, created_at, updated_at FROM posts WHERE id = ?',
+        return this.executeReadOne(
+            `SELECT ${SELECT_FIELDS} FROM posts WHERE id = ?`,
             [id],
-            (r: RowDataPacket) => mapPost(r)
+            mapPost
         );
-        return result ?? null;    
     }
 
     async getByIds(ids: number[]): Promise<Post[]> {
-        if (!ids || ids.length === 0) return [];
-        const placeholders = ids.map(() => '?').join(',');
-        const result = await this.executeRead(
-            `SELECT id, title, content, media_url, community_id, author_id, created_at, updated_at FROM posts WHERE id IN (${placeholders})`,
+        if (ids.length === 0) return [];
+        const placeholders = this.buildPlaceholders(ids);
+        return this.executeRead(
+            `SELECT ${SELECT_FIELDS} FROM posts WHERE id IN (${placeholders})`,
             ids,
-            (r: RowDataPacket) => mapPost(r)
+            mapPost
         );
-        return result;
-    }
-
-    async getByAuthorId(authorId: number): Promise<Post[]> {
-        const result = await this.executeRead(
-            'SELECT id, title, content, media_url, community_id, author_id, created_at, updated_at FROM posts WHERE author_id = ? ORDER BY created_at DESC',
-            [authorId],
-            (r: RowDataPacket) => mapPost(r)
-        );
-        return result;
     }
 
     async getByCommunityId(communityId: number): Promise<Post[]> {
-        const result = await this.executeRead(
-            'SELECT id, title, content, media_url, community_id, author_id, created_at, updated_at FROM posts WHERE community_id = ? ORDER BY created_at DESC',
+        return this.executeRead(
+            `SELECT ${SELECT_FIELDS} FROM posts WHERE community_id = ? ORDER BY created_at DESC`,
             [communityId],
-            (r: RowDataPacket) => mapPost(r)
+            mapPost
         );
-        return result;
     }
-	
-	async getCommunityPostIds(communityIds: number[]): Promise<number[]> {
-        if (!communityIds || communityIds.length === 0) return [];
-        const placeholders = communityIds.map(() => '?').join(',');
-        const result = await this.executeRead(
-                `SELECT id FROM posts WHERE community_id IN (${placeholders})`,
-                communityIds,
-                (r: RowDataPacket) => r.id as number
-            );
-        return result;
-	}
+
+    async getByAuthorId(authorId: number): Promise<Post[]> {
+        return this.executeRead(
+            `SELECT ${SELECT_FIELDS} FROM posts WHERE author_id = ? ORDER BY created_at DESC`,
+            [authorId],
+            mapPost
+        );
+    }
+
+    async getCommunityPostIds(communityIds: number[]): Promise<number[]> {
+        if (communityIds.length === 0) return [];
+        const placeholders = this.buildPlaceholders(communityIds);
+        return this.executeRead(
+            `SELECT id FROM posts WHERE community_id IN (${placeholders})`,
+            communityIds,
+            (r: RowDataPacket) => r.id as number
+        );
+    }
 
     async getFollowedAuthorPostIds(authorIds: number[]): Promise<number[]> {
-        if (!authorIds || authorIds.length === 0) return [];
-        const placeholders = authorIds.map(() => '?').join(',');
-        const result = await this.executeRead(
+        if (authorIds.length === 0) return [];
+        const placeholders = this.buildPlaceholders(authorIds);
+        return this.executeRead(
             `SELECT id FROM posts WHERE author_id IN (${placeholders})`,
             authorIds,
             (r: RowDataPacket) => r.id as number
         );
-        return result;
+    }
+
+    async getPublicPosts(limit: number): Promise<Post[]> {
+        return this.executeRead(
+            `SELECT ${SELECT_FIELDS} FROM posts WHERE community_id IN (SELECT id FROM communities WHERE type = 'public') ORDER BY created_at DESC LIMIT ?`,
+            [limit],
+            mapPost
+        );
     }
 
     async update(post: Post): Promise<Post | null> {
-        if (!post) return null;
         const result = await this.executeWrite(
             'UPDATE posts SET title = ?, content = ?, media_url = ? WHERE id = ?',
             [post.title, post.content, post.mediaUrl, post.id]
         );
-        if (result?.affectedRows && result.affectedRows > 0) {
-            return post;
-        }
-        return null;
+        if (!result || result.affectedRows === 0) return null;
+        return post;
     }
 
     async delete(id: number): Promise<boolean> {
@@ -96,5 +93,4 @@ export class PostRepository extends BaseRepository implements IPostRepository {
         );
         return (result?.affectedRows ?? 0) > 0;
     }
-
-}	
+}

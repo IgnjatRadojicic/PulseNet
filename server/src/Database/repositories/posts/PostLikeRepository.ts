@@ -50,4 +50,15 @@ export class PostLikeRepository extends BaseRepository implements IPostLikeRepos
         return likeCountMap;
     }
 
+    async getLikedPostIds(userId: number, postIds: number[]): Promise<Set<number>> {
+        if (!postIds || postIds.length === 0) return new Set();
+        const placeholders = this.buildPlaceholders(postIds);
+        const rows = await this.executeRead(
+            `SELECT post_id FROM post_likes WHERE user_id = ? AND post_id IN (${placeholders})`,
+            [userId, ...postIds],
+            (r: RowDataPacket) => r.post_id as number
+        );
+        return new Set(rows);
+    }
+
 }
