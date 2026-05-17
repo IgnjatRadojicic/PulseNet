@@ -8,6 +8,7 @@ export interface IPostRepository {
     getByCommunityId(communityId: number): Promise<Post[]>;
     getCommunityPostIds(communityIds: number[]): Promise<number[]>;
     getFollowedAuthorPostIds(authorIds: number[]): Promise<number[]>;
+    getPublicPosts(limit: number): Promise<Post[]>;   
     update(post: Post): Promise<Post | null>;
     delete(id: number): Promise<boolean>;
 }

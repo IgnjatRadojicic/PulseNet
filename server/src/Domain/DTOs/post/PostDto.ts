@@ -14,6 +14,7 @@ export class PostDto {
         public commentCount: number = 0,
         public tags: string[] = [],
         public createdAt: Date | null = null,
+        
         public updatedAt: Date | null = null
     ) {}
 }
