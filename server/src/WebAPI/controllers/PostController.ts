@@ -1,9 +1,8 @@
 import { Request, Response, Router } from 'express';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { validateCreatePost } from '../validators/PostValidator';
-import { IPostService, PostSortOption } from '../../Domain/services/posts/IPostService';
-
-const VALID_SORTS: PostSortOption[] = ['newest', 'popular', 'commented'];
+import { IPostService } from '../../Domain/services/post/IPostService';
+import { sendServiceResult } from '../helpers/responseHelper';
 
 export class PostController {
     private router: Router;
@@ -16,6 +15,7 @@ export class PostController {
     }
 
     private initializeRoutes(): void {
+        this.router.get('/posts/public', this.getPublicPosts.bind(this));
         this.router.get('/posts/feed', authenticate, this.getFeed.bind(this));
         this.router.get('/posts/community/:communityId', this.getByCommunity.bind(this));
         this.router.get('/posts/:id', this.getById.bind(this));
@@ -28,6 +28,23 @@ export class PostController {
         this.router.delete('/posts/:id/tags/:tagId', authenticate, this.removeTag.bind(this));
     }
 
+    private async getPublicPosts(req: Request, res: Response): Promise<void> {
+        try {
+            const limit = parseInt(String(req.query.limit)) || 50;
+            if (limit < 1 || limit > 100) {
+                res.status(400).json({ success: false, message: 'Limit must be between 1 and 100' });
+                return;
+            }
+            const result = await this.postService.getPublicPosts({
+                limit,
+                requesterId: req.user?.id ?? null,
+            });
+            sendServiceResult(res, result);
+        } catch {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    }
+
     private async getByCommunity(req: Request, res: Response): Promise<void> {
         try {
             const communityId = parseInt(String(req.params.communityId));
@@ -35,11 +52,17 @@ export class PostController {
                 res.status(400).json({ success: false, message: 'Invalid community ID' });
                 return;
             }
-            const sort: PostSortOption = VALID_SORTS.includes(req.query.sort as PostSortOption)
-                ? req.query.sort as PostSortOption
+            const sort = req.query.sort as string;
+            const validSort = ['newest', 'popular', 'commented'].includes(sort)
+                ? sort as 'newest' | 'popular' | 'commented'
                 : 'newest';
-            const result = await this.postService.getCommunityPosts(communityId, sort);
-            res.status(result.statusCode ?? 200).json(result);
+
+            const result = await this.postService.getCommunityPosts({
+                communityId,
+                sort: validSort,
+                requesterId: req.user?.id ?? null,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -47,8 +70,8 @@ export class PostController {
 
     private async getFeed(req: Request, res: Response): Promise<void> {
         try {
-            const result = await this.postService.getFeed(req.user!.id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.postService.getFeed({ userId: req.user!.id });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -69,12 +92,15 @@ export class PostController {
                 return;
             }
 
-            const result = await this.postService.createPost(
-                title, content, mediaUrl ?? null,
-                Number(communityId), req.user!.id,
-                Array.isArray(tagIds) ? tagIds : []
-            );
-            res.status(result.statusCode ?? 201).json(result);
+            const result = await this.postService.createPost({
+                title,
+                content,
+                mediaUrl: mediaUrl ?? null,
+                communityId: Number(communityId),
+                authorId: req.user!.id,
+                tagIds: Array.isArray(tagIds) ? tagIds : [],
+            });
+            sendServiceResult(res, result, 201);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -87,8 +113,11 @@ export class PostController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.postService.getPostById(id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.postService.getPostById({
+                postId: id,
+                requesterId: req.user?.id ?? null,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -107,10 +136,14 @@ export class PostController {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
-            const result = await this.postService.updatePost(
-                id, req.user!.id, title, content, mediaUrl ?? null
-            );
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.postService.updatePost({
+                postId: id,
+                requesterId: req.user!.id,
+                title,
+                content,
+                mediaUrl: mediaUrl ?? null,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -123,8 +156,11 @@ export class PostController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.postService.deletePost(id, req.user!.id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.postService.deletePost({
+                postId: id,
+                requesterId: req.user!.id,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -137,8 +173,11 @@ export class PostController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.postService.likePost(req.user!.id, postId);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.postService.likePost({
+                userId: req.user!.id,
+                postId,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -151,8 +190,11 @@ export class PostController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.postService.unlikePost(req.user!.id, postId);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.postService.unlikePost({
+                userId: req.user!.id,
+                postId,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -166,8 +208,12 @@ export class PostController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.postService.addTag(postId, tagId, req.user!.id);
-            res.status(result.statusCode ?? 200).json(result);
+            const result = await this.postService.addTag({
+                postId,
+                tagId,
+                requesterId: req.user!.id,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
@@ -180,9 +226,13 @@ export class PostController {
             if (isNaN(postId) || isNaN(tagId)) {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
-        }
-            const result = await this.postService.removeTag(postId, tagId, req.user!.id);
-            res.status(result.statusCode ?? 200).json(result);
+            }
+            const result = await this.postService.removeTag({
+                postId,
+                tagId,
+                requesterId: req.user!.id,
+            });
+            sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
