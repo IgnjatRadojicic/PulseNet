@@ -5,7 +5,7 @@ import type { AuthContextType } from '../../types/auth/AuthContextType';
 import type { AuthUser } from '../../types/auth/AuthUser';
 import type { JwtTokenClaims } from '../../types/auth/JwtTokenClaims';
 import { AUTH } from '../../constants/auth';
-
+import { API } from '../../constants/api'
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -36,7 +36,7 @@ function tokenToUser(token: string): AuthUser | null {
     
     if (!claims) return null;
 
-    return{ id: claims.id, username: claims.username, role: claims.role };
+    return{ id: claims.id, username: claims.username, role: claims.role, profileImage: null };
 }
 
 function resolveInitialAuth() : {user: AuthUser | null; token: string | null} {
@@ -57,14 +57,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initial = resolveInitialAuth();
     const [user, setUser] = useState<AuthUser | null>(initial.user);
     const [token, setToken] = useState<string | null>(initial.token);
+
+    async function fetchProfile(authToken: string) : Promise<string | null> {
+        try {
+            const res = await fetch(`${API.BASE_URL}users/me`, {
+                headers: {'Authorization': `Bearer ${authToken}`},
+            });
+            const data = await res.json();
+            if (data.success & data.data) {
+                return data.data.profileImage ?? null;
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    }
     
 
-    function login(newToken: string): void {
+    async function login(newToken: string): Promise<void> {
         const resolved = tokenToUser(newToken);
         if (!resolved) return;
         setToken(newToken);
         setUser(resolved);
         storage.set(AUTH.TOKEN_KEY, newToken);
+        const profileImage = await fetchProfile(newToken);
+        setUser(prev => prev ? {... prev, profileImage } : prev);
     }
 
     function logout(): void {
