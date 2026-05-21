@@ -1,39 +1,25 @@
-import {
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { authApi } from "./api_services/auth/AuthAPIService";
-import LandingPage from "./pages/landing/LandingPage";
-import PrijavaStranica from "./pages/auth/PrijavaStranica";
-import RegistracijaStranica from "./pages/auth/RegistracijaStranica";
-import NotFoundStranica from "./pages/not_found/NotFoundPage";
-// import { usersApi } from "./api_services/users/UsersAPIService";
-import TestCommentsPage from "./pages/comments/CommentsPage";
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { ProtectedRoute } from './components/protected_route/ProtectedRoute';
+import LandingPage from './pages/landing/LandingPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import FeedPage from './pages/feed/FeedPage';
+import NotFoundPage from './pages/not_found/NotFoundPage';
 
-function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<PrijavaStranica authApi={authApi} />} />
-      <Route path="/register" element={<RegistracijaStranica authApi={authApi} />} />
-      <Route path="/404" element={<NotFoundStranica />} />
-      <Route path="/comments" element={<TestCommentsPage />} />
+export default function App() {
+    return (
+        <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+
+            <Route path="/feed" element={<FeedPage />} />
 
             <Route
-                path="/feed"
-                element={
-                    <ProtectedRoute requiredRole="user">
-                        <div style={{ color: 'white' }}>Feed — coming soon</div>
-                    </ProtectedRoute>
-                }
-            />
-
-            <Route
-                path="/admin-dashboard"
+                path="/admin"
                 element={
                     <ProtectedRoute requiredRole="admin">
-                        <div style={{ color: 'white' }}>Admin — coming soon</div>
+                        <div style={{ color: 'white' }}>Admin coming soon</div>
                     </ProtectedRoute>
                 }
             />
