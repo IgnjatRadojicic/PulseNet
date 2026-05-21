@@ -2,6 +2,9 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/auth/useAuthHook';
 
+const roleHierarchy: Record<string, number> = { user: 1, admin: 2 };
+
+
 interface Props {
     children: React.ReactNode;
     requiredRole: string;
@@ -11,6 +14,8 @@ interface Props {
 export function ProtectedRoute({ children, requiredRole, redirectTo = '/login' }: Props) {
     const { isAuthenticated, user, isLoading } = useAuth();
     const location = useLocation();
+    const userLevel = roleHierarchy[user?.role ?? ''] ?? 0;
+    const requiredLevel = roleHierarchy[requiredRole] ?? 0;    
 
     if (isLoading) {
         return (
@@ -24,7 +29,8 @@ export function ProtectedRoute({ children, requiredRole, redirectTo = '/login' }
         return <Navigate to={redirectTo} state={{ from: location }} replace />;
     }
 
-    if (user?.role !== requiredRole) {
+
+    if (userLevel < requiredLevel) {
         return <Navigate to="/404" replace />;
     }
 
