@@ -1,5 +1,10 @@
 export interface UserDto {
     id: number;
-    korisnickoIme: string;
-    uloga: string;
+    username: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    bio: string | null;
+    profileImage: string | null;
+    role: string;
 }
