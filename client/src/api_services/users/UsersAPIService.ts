@@ -1,65 +1,46 @@
+import { apiGet, apiPost, apiPut, apiDelete } from '../../helpers/api';
+import type { ApiResponse } from '../../helpers/api';
+import type { IUsersApiService } from './IUsersAPIService';
 import type { UserDto } from '../../models/users/UserDto';
-import type { ApiResponse } from '../../types/api/ApiResponse';
-import type { IUsersAPIService } from './IUsersAPIService';
-import { API } from '../../constants/api';
 
-function authHeader(token: string) {
-    return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-}
+export const usersApiService: IUsersApiService = {
+    getAllUsers(): Promise<ApiResponse<UserDto[]>> {
+        return apiGet<UserDto[]>('users/all');
+    },
 
-async function request<T>(url: string, options?: RequestInit): Promise<ApiResponse<T>> {
-    try {
-        const res = await fetch(url, options);
-        return await res.json();
-    } catch {
-        return { success: false, message: 'Network error. Please try again.' };
-    }
-}
+    getUserById(id: number): Promise<ApiResponse<UserDto>> {
+        return apiGet<UserDto>(`users/${id}`);
+    },
 
-export const usersApiService: IUsersAPIService = {
-    getAllUsers: (token) =>
-        request<UserDto[]>(`${API.BASE_URL}users/all`, { headers: authHeader(token) }),
+    getMe(): Promise<ApiResponse<UserDto>> {
+        return apiGet<UserDto>('users/me');
+    },
 
-    getUserById: (id) =>
-        request<UserDto>(`${API.BASE_URL}users/${id}`),
+    updateProfile(data: { username: string; email: string; firstName: string; lastName: string; bio?: string; profileImage?: string }): Promise<ApiResponse<UserDto>> {
+        return apiPut<UserDto>('users/me', data);
+    },
 
-    getMe: (token) =>
-        request<UserDto>(`${API.BASE_URL}users/me`, { headers: authHeader(token) }),
+    searchUsers(query: string): Promise<ApiResponse<UserDto[]>> {
+        return apiGet<UserDto[]>(`users/search?q=${encodeURIComponent(query)}`);
+    },
 
-    updateProfile: (token, data) =>
-        request<UserDto>(`${API.BASE_URL}users/me`, {
-            method: 'PUT',
-            headers: authHeader(token),
-            body: JSON.stringify(data),
-        }),
+    followUser(userId: number): Promise<ApiResponse<boolean>> {
+        return apiPost<boolean>(`users/${userId}/follow`);
+    },
 
-    searchUsers: (token, query) =>
-        request<UserDto[]>(`${API.BASE_URL}users/search?q=${encodeURIComponent(query)}`, {
-            headers: authHeader(token),
-        }),
+    unfollowUser(userId: number): Promise<ApiResponse<boolean>> {
+        return apiDelete<boolean>(`users/${userId}/follow`);
+    },
 
-    followUser: (token, userId) =>
-        request<boolean>(`${API.BASE_URL}users/${userId}/follow`, {
-            method: 'POST',
-            headers: authHeader(token),
-        }),
+    getFollowers(userId: number): Promise<ApiResponse<UserDto[]>> {
+        return apiGet<UserDto[]>(`users/${userId}/followers`);
+    },
 
-    unfollowUser: (token, userId) =>
-        request<boolean>(`${API.BASE_URL}users/${userId}/follow`, {
-            method: 'DELETE',
-            headers: authHeader(token),
-        }),
+    getFollowing(userId: number): Promise<ApiResponse<UserDto[]>> {
+        return apiGet<UserDto[]>(`users/${userId}/following`);
+    },
 
-    getFollowers: (userId) =>
-        request<UserDto[]>(`${API.BASE_URL}users/${userId}/followers`),
-
-    getFollowing: (userId) =>
-        request<UserDto[]>(`${API.BASE_URL}users/${userId}/following`),
-
-    updateRole: (token, userId, role) =>
-        request<boolean>(`${API.BASE_URL}users/${userId}/role`, {
-            method: 'PUT',
-            headers: authHeader(token),
-            body: JSON.stringify({ role }),
-        }),
+    updateRole(userId: number, role: string): Promise<ApiResponse<boolean>> {
+        return apiPut<boolean>(`users/${userId}/role`, { role });
+    },
 };

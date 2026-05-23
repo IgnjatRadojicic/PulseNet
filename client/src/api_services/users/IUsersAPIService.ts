@@ -1,15 +1,14 @@
-import type { UserDto } from '../../models/users/UserDto';
-import type { ApiResponse } from '../../types/api/ApiResponse';
+import type { ApiResponse } from '../../helpers/api';
 
-export interface IUsersAPIService {
-    getAllUsers(token: string): Promise<ApiResponse<UserDto[]>>;
+export interface IUsersApiService {
+    getAllUsers(): Promise<ApiResponse<UserDto[]>>;
     getUserById(id: number): Promise<ApiResponse<UserDto>>;
-    getMe(token: string): Promise<ApiResponse<UserDto>>;
-    updateProfile(token: string, data: Partial<UserDto>): Promise<ApiResponse<UserDto>>;
-    searchUsers(token: string, query: string): Promise<ApiResponse<UserDto[]>>;
-    followUser(token: string, userId: number): Promise<ApiResponse<boolean>>;
-    unfollowUser(token: string, userId: number): Promise<ApiResponse<boolean>>;
+    getMe(): Promise<ApiResponse<UserDto>>;
+    updateProfile(data: { username: string; email: string; firstName: string; lastName: string; bio?: string; profileImage?: string }): Promise<ApiResponse<UserDto>>;
+    searchUsers(query: string): Promise<ApiResponse<UserDto[]>>;
+    followUser(userId: number): Promise<ApiResponse<boolean>>;
+    unfollowUser(userId: number): Promise<ApiResponse<boolean>>;
     getFollowers(userId: number): Promise<ApiResponse<UserDto[]>>;
     getFollowing(userId: number): Promise<ApiResponse<UserDto[]>>;
-    updateRole(token: string, userId: number, role: string): Promise<ApiResponse<boolean>>;
+    updateRole(userId: number, role: string): Promise<ApiResponse<boolean>>;
 }
