@@ -8,21 +8,24 @@ import { UserFollowRepository } from './Database/repositories/users/UserFollowRe
 import { PostRepository } from './Database/repositories/posts/PostRepository';
 import { PostLikeRepository } from './Database/repositories/posts/PostLikeRepository';
 import { PostTagRepository } from './Database/repositories/posts/PostTagRepository';
+import { PostCommentRepository } from './Database/repositories/posts/PostCommentRepository';
 import { CommentReadWriteRepository } from './Database/repositories/comments/CommentReadWriteRepository';
 import { CommentQueryRepository } from './Database/repositories/comments/CommentQueryRepository';
 import { CommentLikeRepository } from './Database/repositories/comments/CommentLikeRepository';
-import { CommunityRepository } from './Database/repositories/communities/CommunityRepository';
-import { TagRepository } from './Database/repositories/tags/TagRepository';
+import { CommunityRepository } from './Database/repositories/Community/CommunityRepository';
+import { CommunityMemberRepository } from './Database/repositories/Community/CommunityMemberRepository';
+import { TagRepository } from './Database/repositories/Tags/TagRepository';
 import { AuditRepository } from './Database/repositories/audits/AuditRepository';
 
 // Services
 import { AuthService } from './Services/auth/AuthService';
 import { UserService } from './Services/users/UserService';
-import { PostService } from './Services/posts/PostService';
+import { PostService } from './Services/post/PostService';
 import { CommentService } from './Services/comments/CommentService';
-import { CommunityService } from './Services/communities/CommunityService';
-import { TagService } from './Services/tags/TagService';
-import { AuditService } from './Services/audits/AuditService';
+import { CommunityService } from './Services/Communities/CommunityService';
+import { TagService } from './Services/Tags/TagService';
+import { AuditService } from './Services/audit/AuditService';
+import { CommunityMemberService } from './Services/Communities/CommunityMemberService';
 
 // Controllers
 import { AuthController } from './WebAPI/controllers/AuthController';
@@ -30,12 +33,13 @@ import { UserController } from './WebAPI/controllers/UserController';
 import { PostController } from './WebAPI/controllers/PostController';
 import { CommentController } from './WebAPI/controllers/CommentController';
 import { CommunityController } from './WebAPI/controllers/CommunityController';
-import { TagController } from './WebAPI/controllers/TagController';
+import { CommunityMemberController } from './WebAPI/controllers/CommunityMemberController';
+import { TagsController } from './WebAPI/controllers/TagsController';
 import { HealthController } from './WebAPI/controllers/HealthController';
 import { AuditController } from './WebAPI/controllers/AuditController';
 
 // Middleware
-import { createAuditMiddleware } from './Middlewares/audit/AuditMiddleware';
+import { createAuditMiddleware } from './Middlewares/auditing/AuditMiddleware';
 
 // Database Health Check
 import { startHealthCheck } from './Database/connection/DbConnectionPool';
@@ -53,11 +57,13 @@ const userFollowRepository = new UserFollowRepository();
 const postRepository = new PostRepository();
 const postLikeRepository = new PostLikeRepository();
 const postTagRepository = new PostTagRepository();
+const postCommentRepository = new PostCommentRepository();
 const commentReadWriteRepository = new CommentReadWriteRepository();
 const commentQueryRepository = new CommentQueryRepository();
 const commentLikeRepository = new CommentLikeRepository();
 const communityRepository = new CommunityRepository();
 const tagRepository = new TagRepository();
+const communityMemberRepository = new CommunityMemberRepository();
 const auditRepository = new AuditRepository();
 
 // Services
@@ -65,15 +71,17 @@ const auditService = new AuditService(auditRepository);
 const authService = new AuthService(userRepository);
 const userService = new UserService(userRepository, userFollowRepository, auditService);
 const postService = new PostService(
-    postRepository, postLikeRepository, postTagRepository,
+    postRepository, postLikeRepository, postTagRepository, postCommentRepository,
     userRepository, userFollowRepository,
-    communityRepository, tagRepository
+    communityRepository, communityMemberRepository,
+    tagRepository
 );
+const communityMemberService = new CommunityMemberService(communityMemberRepository, auditService);
 const commentService = new CommentService(
     commentReadWriteRepository, commentQueryRepository, commentLikeRepository,
     postRepository, communityRepository
 );
-const communityService = new CommunityService(communityRepository, userRepository, auditService);
+const communityService = new CommunityService(communityRepository, communityMemberRepository, auditService);
 const tagService = new TagService(tagRepository);
 
 // Audit Middleware (pre kontrolera, posle parsera)
@@ -85,9 +93,10 @@ const userController = new UserController(userService);
 const postController = new PostController(postService);
 const commentController = new CommentController(commentService);
 const communityController = new CommunityController(communityService);
-const tagController = new TagController(tagService);
-const healthController = new HealthController();
+const tagController = new TagsController(tagService);
+const healthController = new HealthController(auditService);
 const auditController = new AuditController(auditService);
+const communityMemberController = new CommunityMemberController(communityMemberService);
 
 // Routes
 app.use('/api/v1', authController.getRouter());
@@ -95,6 +104,7 @@ app.use('/api/v1', userController.getRouter());
 app.use('/api/v1', postController.getRouter());
 app.use('/api/v1', commentController.getRouter());
 app.use('/api/v1', communityController.getRouter());
+app.use('/api/v1', communityMemberController.getRouter());
 app.use('/api/v1', tagController.getRouter());
 app.use('/api/v1', healthController.getRouter());
 app.use('/api/v1', auditController.getRouter());
