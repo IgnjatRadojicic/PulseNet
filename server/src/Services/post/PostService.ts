@@ -10,7 +10,7 @@ import { IPostRepository } from '../../Domain/repositories/post_repository/IPost
 import { IPostLikeRepository } from '../../Domain/repositories/post_repository/IPostLikeRepository';
 import { IPostTagRepository } from '../../Domain/repositories/post_repository/IPostTagRepository';
 import { IPostCommentRepository } from '../../Domain/repositories/post_repository/IPostCommentRepository';
-import { ITagRepository } from '../../Domain/repositories/Tags/ITagRepository';
+import { ITagRepository } from '../../Domain/repositories/tags/ITagRepository';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFollowRepository';
 import { IPostService } from '../../Domain/services/post/IPostService';
@@ -76,8 +76,8 @@ export class PostService implements IPostService {
         ]);
 
         const allTagIds = [...new Set([...tagIdMap.values()].flat())];
-        const allTags = await this.tagRepository.getByIds(allTagIds);
-        const tagMap = new Map(allTags.map((t: Tag) => [t.id, t.name]));
+        const alltags = await this.tagRepository.getByIds(allTagIds);
+        const tagMap = new Map(alltags.map((t: Tag) => [t.id, t.name]));
         const authorMap = new Map<number, { username: string; profileImage: string | null }>(
             authors.map((u: User) => [u.id, { username: u.username, profileImage: u.profileImage }])
         );
