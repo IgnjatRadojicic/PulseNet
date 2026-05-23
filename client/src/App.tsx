@@ -4,15 +4,19 @@ import LandingPage from './pages/landing/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import FeedPage from './pages/feed/FeedPage';
+import AboutPage from './pages/info/AboutPage';
+import HelpPage from './pages/info/HelpPage';
 import NotFoundPage from './pages/not_found/NotFoundPage';
 
 export default function App() {
     return (
         <Routes>
+      
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/help" element={<HelpPage />} />     
             <Route path="/feed" element={<FeedPage />} />
 
             <Route
