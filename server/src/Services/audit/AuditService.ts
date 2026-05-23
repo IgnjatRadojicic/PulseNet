@@ -1,7 +1,7 @@
-import { AuditDto } from '../../Domain/DTOs/audits/AuditDto';
+import { AuditDto } from '../../Domain/DTOs/audit/AuditDto';
 import { Audit } from '../../Domain/models/Audit';
-import { IAuditRepository } from '../../Domain/repositories/audits/IAuditRepository';
-import { IAuditService } from '../../Domain/services/audits/IAuditService';
+import { IAuditRepository } from '../../Domain/repositories/audit/IAuditRepository';
+import { IAuditService } from '../../Domain/services/audit/IAuditService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import { AuditLogInput, GetAuditLogsInput } from '../../Domain/types/inputs/AuditInputs';
 
