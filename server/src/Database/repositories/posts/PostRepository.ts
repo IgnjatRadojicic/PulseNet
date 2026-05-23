@@ -71,8 +71,8 @@ export class PostRepository extends BaseRepository implements IPostRepository {
 
     async getPublicPosts(limit: number): Promise<Post[]> {
         return this.executeRead(
-            `SELECT ${SELECT_FIELDS} FROM posts WHERE community_id IN (SELECT id FROM communities WHERE type = 'public') ORDER BY created_at DESC LIMIT ?`,
-            [limit],
+            `SELECT ${SELECT_FIELDS} FROM posts WHERE community_id IN (SELECT id FROM communities WHERE type = 'public') ORDER BY created_at DESC LIMIT ${limit}`,
+            [],
             mapPost
         );
     }
