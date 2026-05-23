@@ -1,4 +1,5 @@
 import type { ApiResponse } from '../../helpers/api';
+import type { UserDto } from '../../models/users/UserDto';
 
 export interface IUsersApiService {
     getAllUsers(): Promise<ApiResponse<UserDto[]>>;
