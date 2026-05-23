@@ -6,12 +6,13 @@ import LandingFeatures from '../../components/landing/LandingFeatures';
 import LandingRoles from '../../components/landing/LandingRoles';
 import LandingCTA from '../../components/landing/LandingCta';
 import LandingFooter from '../../components/landing/LandingFooter';
+import { useAuth } from '../../hooks/auth/useAuthHook';
 import { useAnimatedBackground } from '../../hooks/other/useAnimatedBackground';
 import handImg from '../../assets/pointing-hand.png';
 
 export default function LandingPage() {
     const landingRef = useRef<HTMLDivElement>(null);
-
+    const { user } = useAuth();
     const { pCanvasRef, ekgWrapRef, eCanvasRef } = useAnimatedBackground('fullpage');
 
     return (
@@ -42,9 +43,14 @@ export default function LandingPage() {
             <div className="relative" style={{ zIndex: 2 }}>
                 <LandingNav />
                 <LandingHero />
-                <LandingStats />
-                <LandingFeatures />
-                <LandingRoles />
+                {!user && (
+                    <>
+                        
+                        <LandingStats />
+                        <LandingFeatures />
+                        <LandingRoles />
+                    </>
+                )}
 
 
                 <div ref={ekgWrapRef} className="relative">
