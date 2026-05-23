@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
+import { useAuth } from '../../hooks/auth/useAuthHook';
 
 export default function LandingCTA() {
+    const {user} = useAuth();
     const navigate = useNavigate();
     const dotRef = useRef<HTMLSpanElement>(null);
 
@@ -24,6 +26,7 @@ export default function LandingCTA() {
     }, []);
 
     return (
+
         <section className="px-6 md:px-16 py-20 md:py-32 text-center border-t border-border-subtle">
             <div className="inline-flex items-center gap-2 text-xs tracking-widest uppercase mb-8 text-pulse-half border border-pulse-50 py-1 px-3 rounded-px">
                 <span
@@ -32,9 +35,27 @@ export default function LandingCTA() {
                 />
                 Master node active
             </div>
-
+            {user ? (
+            <>
             <h2 className="font-syne text-section leading-none tracking-display text-white font-black mb-6">
-                Ready to<br />connect?
+                Welcome back,<br />{user?.username}!
+            </h2>
+
+            <p className="text-base font-light leading-loose mb-10 md:mb-12 max-w-sm mx-auto text-muted-soft">
+                Check out whats new in your favorite communities!.
+            </p>
+
+            <button
+                onClick={() => navigate('/feed')}
+                className="text-white text-sm tracking-widest px-9 py-3 cursor-pointer transition-all hover:-translate-y-px bg-pulse border-none rounded-half"
+            >
+                Go to feed
+            </button>
+            </>
+            ): (
+                <>
+            <h2 className="font-syne text-section leading-none tracking-display text-white font-black mb-6">
+                Ready to<br />connect!
             </h2>
 
             <p className="text-base font-light leading-loose mb-10 md:mb-12 max-w-sm mx-auto text-muted-soft">
@@ -46,7 +67,10 @@ export default function LandingCTA() {
                 className="text-white text-sm tracking-widest px-9 py-3 cursor-pointer transition-all hover:-translate-y-px bg-pulse border-none rounded-half"
             >
                 Create an account
-            </button>
+            </button>             
+            </>   
+            )
+           } 
         </section>
     );
 }
