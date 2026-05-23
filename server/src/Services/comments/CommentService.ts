@@ -5,6 +5,7 @@ import { ICommentLikeRepository } from '../../Domain/repositories/comments/IComm
 import { ICommentQueryRepository } from '../../Domain/repositories/comments/ICommentQueryRepository';
 import { ICommentReadWriteRepository } from '../../Domain/repositories/comments/ICommentReadWriteRepository';
 import { ICommunityRepository } from '../../Domain/repositories/communities/ICommunityRepository';
+import { ICommunityMemberRepository } from '../../Domain/repositories/communities/ICommunityMemberRepository';
 import { IPostRepository } from '../../Domain/repositories/post_repository/IPostRepository';
 import { ICommentService } from '../../Domain/services/comments/ICommentService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
@@ -28,7 +29,7 @@ export class CommentService implements ICommentService {
         private commentQueryRepository: ICommentQueryRepository,
         private commentLikeRepository: ICommentLikeRepository,
         private postRepository: IPostRepository,
-        private communityRepository: ICommunityRepository
+        private communityMemberRepository: ICommunityMemberRepository
     ) {}
 
     async addComment(input: AddCommentInput): Promise<ServiceResult<CommentDto>> {
@@ -113,9 +114,9 @@ export class CommentService implements ICommentService {
             return { success: false, message: 'Associated post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const member = await this.communityRepository.getMember(input.requesterId, post.communityId);
+        const member = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
         const isAuthor = comment.authorId === input.requesterId;
-        const isModerator = member.role === 'moderator';
+        const isModerator = member?.role === 'moderator';
 
         if (!isAuthor && !isModerator) {
             return { success: false, message: 'Not authorized to delete this comment', errorCode: ErrorCode.FORBIDDEN };
@@ -135,8 +136,8 @@ export class CommentService implements ICommentService {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const member = await this.communityRepository.getMember(input.requesterId, input.communityId);
-        if (member.role !== 'moderator') {
+        const member = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+        if (member?.role !== 'moderator') {
             return { success: false, message: 'Only moderators can flag comments', errorCode: ErrorCode.FORBIDDEN };
         }
 
