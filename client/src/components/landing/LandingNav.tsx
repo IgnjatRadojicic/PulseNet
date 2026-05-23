@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useAuth } from '../../hooks/auth/useAuthHook';
 
 export default function LandingNav() {
     const navigate = useNavigate();
+    const {user} = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
 
     return (
@@ -18,12 +20,21 @@ export default function LandingNav() {
                 <li><a href="#roles" className="text-white/55 no-underline text-sm font-light tracking-wider hover:text-white transition-colors">Roles</a></li>
             </ul>
 
-            <button
-                onClick={() => navigate('/login')}
-                className="hidden md:block bg-transparent text-purple-400 text-sm tracking-wider px-5 py-2 cursor-pointer transition-all hover:bg-pulse-50 border border-pulse-half rounded-half"
-            >
-                Get started
-            </button>
+            {user ? (
+                <button
+                    onClick={() => navigate('/feed')}
+                    className="hidden md:block bg-transparent text-purple-400 text-sm tracking-wider px-5 py-2 cursor-pointer transition-all hover:bg-pulse-50 border border-pulse-half rounded-half"
+                >
+                    Go to Feed
+                </button>
+            ) : (
+                <button
+                    onClick={() => navigate('/login')}
+                    className="hidden md:block bg-transparent text-purple-400 text-sm tracking-wider px-5 py-2 cursor-pointer transition-all hover:bg-pulse-50 border border-pulse-half rounded-half"
+                >
+                    Get started
+                </button>
+            )}
 
             {/* Mobile hamburger */}
             <button
