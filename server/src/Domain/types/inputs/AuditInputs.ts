@@ -4,8 +4,8 @@ export type AuditLogInput = {
     entityType: string;
     entityId: number | null;
     details?: string;
-    ipAddress?: string;
-    userAgent?: string;
+    ipAddress?: string | null;
+    userAgent?: string | null;
 };
  
 export type GetAuditLogsInput = {
