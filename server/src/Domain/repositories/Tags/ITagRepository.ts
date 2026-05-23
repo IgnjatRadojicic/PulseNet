@@ -6,4 +6,6 @@ export interface ITagRepository {
     getById(id:number): Promise<Tag | null>;
     update(tag:Tag): Promise <Tag | null>
     delete(id:number): Promise<boolean>;
+    getByIds(ids: number[]): Promise<Tag[]>;
+    
 }
