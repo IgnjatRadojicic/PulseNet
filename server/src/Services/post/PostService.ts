@@ -76,7 +76,9 @@ export class PostService implements IPostService {
         const allTagIds = [...new Set([...tagIdMap.values()].flat())];
         const allTags = await this.tagRepository.getByIds(allTagIds);
         const tagMap = new Map(allTags.map((t: Tag) => [t.id, t.name]));
-        const authorMap = new Map(authors.map((u: User) => [u.id, { username: u.username, profileImage: u.profileImage }]));
+        const authorMap = new Map<number, { username: string; profileImage: string | null }>(
+            authors.map((u: User) => [u.id, { username: u.username, profileImage: u.profileImage }])
+        );
         const communityMap = new Map(communities.map((c: Community) => [c.id, c.name]));
 
         return posts.map(post => {
