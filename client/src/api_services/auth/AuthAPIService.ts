@@ -1,45 +1,25 @@
-import { API } from '../../constants/api';
-import type { AuthResponse } from '../../types/auth/AuthResponse';
-import type { IAuthAPIService } from './IAuthAPIService';
+import { apiPost} from '../../helpers/api';
+import type { ApiResponse } from '../../helpers/api';
+import type { IAuthApiService } from './IAuthAPIService';
 
-export const authApiService: IAuthAPIService = {
-    async login(username, password): Promise<AuthResponse> {
-      try {
-        const res = await fetch(`${API.BASE_URL}auth/login`, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({username, password}),
-        })
-        return await res.json();
-        } catch {
-            return { success: false, message: 'Network error. Please try again.' };
-        }
+export const authApiService: IAuthApiService = {
+    login(username: string, password: string): Promise<ApiResponse<string>> {
+        return apiPost<string>('auth/login', { username, password });
     },
 
-    async register(username, email, firstName, lastName, password, bio, profileImage): Promise<AuthResponse> {
-        try {
-            const res = await fetch(`${API.BASE_URL}auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email, firstName, lastName, password, bio, profileImage }),
-            });
-            return await res.json();
-        } catch {
-            return { success: false, message: 'Network error. Please try again.' };
-        }
+    register(
+        username: string,
+        email: string,
+        firstName: string,
+        lastName: string,
+        password: string,
+        bio?: string,
+        profileImage?: string
+    ): Promise<ApiResponse<string>> {
+        return apiPost<string>('auth/register', { username, email, firstName, lastName, password, bio, profileImage });
     },
 
-    async logout(token): Promise<void> {
-      try {
-        await fetch(`"${API.BASE_URL}auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-        });
-        } catch {
-            // silent
-        }
+    logout(): Promise<ApiResponse<void>> {
+        return apiPost<void>('auth/logout');
     },
 };
