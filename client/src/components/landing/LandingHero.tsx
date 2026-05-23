@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/auth/useAuthHook';
 
 export default function LandingHero() {
     const navigate = useNavigate();
+    const {user} = useAuth();
 
     return (
         <section className="px-6 md:px-16 pt-16 md:pt-24 pb-12 md:pb-16 max-w-4xl">
@@ -21,14 +23,24 @@ export default function LandingHero() {
                 architecture with automatic failover.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 items-start sm:items-center">
+                { user ? (
+                <button
+                    onClick={() => navigate('/register')}
+                    className="text-white text-sm tracking-widest px-9 py-3 cursor-pointer transition-all hover:-translate-y-px bg-pulse border-none rounded-half"
+                >
+                    See the Feed
+                </button> ) :
+                (
                 <button
                     onClick={() => navigate('/register')}
                     className="text-white text-sm tracking-widest px-9 py-3 cursor-pointer transition-all hover:-translate-y-px bg-pulse border-none rounded-half"
                 >
                     Join the network
-                </button>
+                </button> )                    
+                
+               } 
                 <button
-                    onClick={() => navigate('/register')}
+                    onClick={() => navigate('/feed')}
                     className="bg-transparent text-white/45 text-sm font-light tracking-widest flex items-center gap-2 cursor-pointer border-none transition-colors hover:text-white"
                 >
                     Explore communities
