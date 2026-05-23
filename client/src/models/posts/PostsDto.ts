@@ -7,6 +7,8 @@ export interface PostDto {
     communityName: string;
     authorId: number;
     authorUsername: string;
+    authorProfileImage: string | null;
+    isLiked: boolean;
     likeCount: number;
     commentCount: number;
     tags: string[];
