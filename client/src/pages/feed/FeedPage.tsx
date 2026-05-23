@@ -29,9 +29,46 @@ export default function FeedPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
  
-    useEffect(() => {
-        fetchPosts();
-    }, [user]);
+// Na vrhu FeedPage, zameni fetchPosts sa:
+useEffect(() => {
+    setPosts([
+        {
+            id: 1,
+            title: 'Welcome to PulseNet',
+            content: 'This is the first post on the platform. Join communities and start posting!',
+            mediaUrl: null,
+            communityId: 1,
+            communityName: 'General',
+            authorId: 1,
+            authorUsername: 'admin',
+            authorProfileImage: null,
+            isLiked: false,
+            likeCount: 12,
+            commentCount: 3,
+            tags: ['welcome', 'intro'],
+            createdAt: new Date().toISOString(),
+            updatedAt: null,
+        },
+        {
+            id: 2,
+            title: 'How does the distributed database work?',
+            content: 'Our system uses MySQL Master-Slave replication with automatic failover. The master handles all writes while reads are distributed across slave nodes using round-robin load balancing.',
+            mediaUrl: null,
+            communityId: 2,
+            communityName: 'Tech',
+            authorId: 2,
+            authorUsername: 'forn',
+            authorProfileImage: null,
+            isLiked: true,
+            likeCount: 27,
+            commentCount: 8,
+            tags: ['database', 'distributed'],
+            createdAt: new Date(Date.now() - 3600000).toISOString(),
+            updatedAt: null,
+        },
+    ]);
+    setLoading(false);
+}, []);
 
 
     async function fetchPosts() {

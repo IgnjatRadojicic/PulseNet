@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Compass, Info, HelpCircle, Shield, Users, FileText, Activity, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { Home, Compass, Info, HelpCircle, Shield, Users, FileText, Activity, Tag, ChevronDown, ChevronUp, Menu } from 'lucide-react';
 import { useState } from 'react';
 import { FEED} from '../../constants/feed';
+
+
 import { useAuth } from '../../hooks/auth/useAuthHook';
  
 interface SidebarItem {
@@ -120,33 +122,80 @@ function SidebarSectionBlock({ section }: { section: SidebarSection }) {
 
 interface SidebarProps {
     communities?:{id: number, name: string} [];
+    isOpen: boolean;
+    onToggle: () => void;
 }
 
-export default function Sidebar({ communities = [] }: SidebarProps) {
+export default function Sidebar({ communities = [], isOpen, onToggle  }: SidebarProps) {
     const { user } = useAuth();
     const isLoggedIn = !!user;
     const isAdmin = user?.role === 'admin';
 
     const sections = buildSections(isLoggedIn, isAdmin, communities);
 
+
+if (!isOpen) {
     return (
+        <div className="fixed top-14 left-0 w-[50px] h-[calc(100vh-56px)] hidden lg:block" style={{ zIndex: 40 }}>
+            <aside
+                className="w-full h-full"
+                style={{
+                    background: 'rgba(10, 10, 16, 0.95)',
+                    borderRight: '1px solid rgba(255,255,255,0.06)',
+                }}
+            />
+            <button
+                onClick={onToggle}
+                className="absolute top-20 -right-4 z-10 p-1.5 rounded-full hover:bg-white/10 transition-colors hidden lg:block"
+                style={{
+                    background: 'rgba(10, 10, 16, 0.95)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    cursor: 'pointer',
+                }}
+            >
+                <Menu size={20} strokeWidth={1.5} className="text-white/60" />
+            </button>
+        </div>
+    );
+}
+
+
+// Expanded sidebar
+return (
+        <div className="fixed top-14 left-0 w-[270px] h-[calc(100vh-56px)]" style={{ zIndex: 40 }}>
+        <div
+            className="fixed inset-0 top-14 bg-black/50 lg:hidden"
+            style={{ zIndex: -1 }}
+            onClick={onToggle}
+        />            
+        <button
+            onClick={onToggle}
+            className="absolute top-20 -right-4 z-10 p-1.5 rounded-full hover:bg-white/10 transition-colors hidden lg:block"
+            style={{
+                background: 'rgba(10, 10, 16, 0.95)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                cursor: 'pointer',
+            }}
+        >
+            <Menu size={20} strokeWidth={1.5} className="text-white/60" />
+        </button>
+
         <aside
-            className="fixed top-14 left-0 w-[270px] h-[calc(100vh-56px)] overflow-y-auto"
+            className="w-full h-full overflow-y-auto"
             style={{
                 background: 'rgba(10, 10, 16, 0.95)',
                 borderRight: '1px solid rgba(255,255,255,0.06)',
             }}
         >
-            <div className="py-3 flex flex-col">
+            <div className="py-3 pt-6 flex flex-col">
                 {sections.map((section, i) => (
                     <div key={i}>
-                        {i > 0 && (
-                            <div className="mx-4 my-2 border-t border-white/6" />
-                        )}
+                        {i > 0 && <div className="mx-4 my-2 border-t border-white/6" />}
                         <SidebarSectionBlock section={section} />
                     </div>
                 ))}
             </div>
         </aside>
-    );
+    </div>
+);
 } 
