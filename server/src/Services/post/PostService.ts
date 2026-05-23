@@ -1,21 +1,22 @@
-import { PostDto } from '../../Domain/DTOs/posts/PostDto';
+import { PostDto } from '../../Domain/DTOs/post/PostDto';
 import { Post } from '../../Domain/models/Post';
 import { User } from '../../Domain/models/User';
 import { Tag } from '../../Domain/models/Tag';
 import { Community } from '../../Domain/models/Community';
 import { ErrorCode } from '../../Domain/enums/ErrorCode';
 import { ICommunityRepository } from '../../Domain/repositories/communities/ICommunityRepository';
-import { IPostRepository } from '../../Domain/repositories/posts/IPostRepository';
-import { IPostLikeRepository } from '../../Domain/repositories/posts/IPostLikeRepository';
-import { IPostTagRepository } from '../../Domain/repositories/posts/IPostTagRepository';
-import { IPostCommentRepository } from '../../Domain/repositories/posts/IPostCommentRepository';
-import { ITagRepository } from '../../Domain/repositories/tags/ITagRepository';
+import { ICommunityMemberRepository } from '../../Domain/repositories/communities/ICommunityMemberRepository';
+import { IPostRepository } from '../../Domain/repositories/post_repository/IPostRepository';
+import { IPostLikeRepository } from '../../Domain/repositories/post_repository/IPostLikeRepository';
+import { IPostTagRepository } from '../../Domain/repositories/post_repository/IPostTagRepository';
+import { IPostCommentRepository } from '../../Domain/repositories/post_repository/IPostCommentRepository';
+import { ITagRepository } from '../../Domain/repositories/Tags/ITagRepository';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFollowRepository';
-import { IPostService } from '../../Domain/services/posts/IPostService';
+import { IPostService } from '../../Domain/services/post/IPostService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import * as PostInputs from '../../Domain/types/inputs/PostInputs';
-
+import { CommunityRole } from '../../Domain/enums/CommunityRole'
 export class PostService implements IPostService {
     public constructor(
         private postRepository: IPostRepository,
@@ -25,6 +26,7 @@ export class PostService implements IPostService {
         private userRepository: IUserRepository,
         private userFollowRepository: IUserFollowRepository,
         private communityRepository: ICommunityRepository,
+        private communityMemberRepository:  ICommunityMemberRepository,
         private tagRepository: ITagRepository
     ) {}
 
@@ -45,12 +47,12 @@ export class PostService implements IPostService {
 
         return new PostDto(
             post.id, post.title, post.content, post.mediaUrl,
-            post.communityId, community?.name ?? '',
+            post.communityId, community?.communityName?? '',
             post.authorId, author?.username ?? '',
             author?.profileImage ?? null,
             isLiked,
             likeCount, commentCount,
-            tags.map((t: Tag) => t.name),
+            tags.map((t: Tag) => t.name).filter((s): s is string => s !== null),
             post.createdAt, post.updatedAt
         );
     }
@@ -79,7 +81,7 @@ export class PostService implements IPostService {
         const authorMap = new Map<number, { username: string; profileImage: string | null }>(
             authors.map((u: User) => [u.id, { username: u.username, profileImage: u.profileImage }])
         );
-        const communityMap = new Map(communities.map((c: Community) => [c.id, c.name]));
+        const communityMap = new Map(communities.map((c: Community) => [c.id, c.communityName]));
 
         return posts.map(post => {
             const author = authorMap.get(post.authorId);
@@ -103,7 +105,7 @@ export class PostService implements IPostService {
             return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const member = await this.communityRepository.getMember(input.authorId, input.communityId);
+        const member = await this.communityMemberRepository.getMember(input.authorId, input.communityId);
         if (!member || member.status !== 'active') {
             return { success: false, message: 'You must be an active member to post', errorCode: ErrorCode.FORBIDDEN };
         }
@@ -184,9 +186,9 @@ export class PostService implements IPostService {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const member = await this.communityRepository.getMember(input.requesterId, post.communityId);
+        const member = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
         const isAuthor = post.authorId === input.requesterId;
-        const isModerator = member?.role === 'moderator';
+        const isModerator = member?.role === CommunityRole.Moderator;
 
         if (!isAuthor && !isModerator) {
             return { success: false, message: 'Not authorized to update this post', errorCode: ErrorCode.FORBIDDEN };
@@ -209,9 +211,9 @@ export class PostService implements IPostService {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const member = await this.communityRepository.getMember(input.requesterId, post.communityId);
+        const member = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
         const isAuthor = post.authorId === input.requesterId;
-        const isModerator = member?.role === 'moderator';
+        const isModerator = member?.role === CommunityRole.Moderator;
 
         if (!isAuthor && !isModerator) {
             return { success: false, message: 'Not authorized to delete this post', errorCode: ErrorCode.FORBIDDEN };
