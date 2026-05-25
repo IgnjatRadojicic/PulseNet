@@ -2,7 +2,8 @@ import { Comment } from '../../../Domain/models/Comment';
 import { BaseRepository } from '../BaseRepository';
 import { mapComment, COMMENT_FIELDS } from '../../mappers/CommentMapper';
 import { ICommentReadWriteRepository } from '../../../Domain/repositories/comments/ICommentReadWriteRepository';
-
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { getReadConnection, getWriteConnection } from '../../connection/DbConnectionPool';
 export class CommentReadWriteRepository extends BaseRepository implements ICommentReadWriteRepository {
 
     async getById(id: number): Promise<Comment | null> {
@@ -33,16 +34,26 @@ export class CommentReadWriteRepository extends BaseRepository implements IComme
         );
     }
 
-    async create(comment: Comment): Promise<Comment | null> {
-        const result = await this.executeWrite(
-            'INSERT INTO comments (post_id, author_id, parent_id, content) VALUES (?, ?, ?, ?)',
-            [comment.postId, comment.authorId, comment.parentId, comment.content]
-        );
-        
-        if (!result?.insertId) return null;
-        
-        return this.getById(result.insertId);
-    }
+async create(comment: Comment): Promise<Comment | null> {
+    const result = await this.executeWrite(
+        'INSERT INTO comments (post_id, author_id, parent_id, content) VALUES (?, ?, ?, ?)',
+        [comment.postId, comment.authorId, comment.parentId, comment.content]
+    );
+
+    if (!result?.insertId) return null;
+
+    // Read back from the WRITE connection to avoid replication lag
+    const conn = getWriteConnection();
+    if (!conn.success || !conn.data) return null;
+
+    const [rows] = await conn.data.execute<RowDataPacket[]>(
+        `SELECT ${COMMENT_FIELDS} FROM comments WHERE id = ?`,
+        [result.insertId]
+    );
+
+    if (rows.length === 0) return null;
+    return mapComment(rows[0]);
+}
 
     async update(id: number, content: string): Promise<boolean> {
         const result = await this.executeWrite(

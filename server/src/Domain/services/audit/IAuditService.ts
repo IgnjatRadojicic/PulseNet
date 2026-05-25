@@ -4,5 +4,6 @@ import { AuditLogInput, GetAuditLogsInput } from '../../types/inputs/AuditInputs
 
 export interface IAuditService {
     log(input: AuditLogInput): Promise<void>;
-    getAuditLogs(input: GetAuditLogsInput): Promise<ServiceResult<{logs: AuditDto[]; total: number}>>;
+    getAuditLogs(input: GetAuditLogsInput): Promise<ServiceResult<{ data: AuditDto[]; total: number; totalPages: number }>>
+
 }

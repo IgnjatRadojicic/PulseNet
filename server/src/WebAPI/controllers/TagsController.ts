@@ -18,11 +18,12 @@ export class TagsController {
         this.initializeRoutes();
     }
 
-    private initializeRoutes(): void {
-        this.router.get('/tags', authenticate, this.getAllTags.bind(this));
-        this.router.post('/tags/:id', authenticate, authorize(UserRole.Admin),this.updateTag.bind(this));
-        this.router.delete('/tags/:id',authenticate,authorize(UserRole.Admin),this.deleteTag.bind(this));
-    }
+        private initializeRoutes(): void {
+            this.router.get('/tags', authenticate, this.getAllTags.bind(this));
+            this.router.post('/tags', authenticate, authorize(UserRole.Admin), this.createTag.bind(this));
+            this.router.post('/tags/:id', authenticate, authorize(UserRole.Admin), this.updateTag.bind(this));
+            this.router.delete('/tags/:id', authenticate, authorize(UserRole.Admin), this.deleteTag.bind(this));
+        }
 
 
     private async getAllTags(req: Request, res: Response): Promise<void>{
@@ -33,12 +34,27 @@ export class TagsController {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
     }
+
+    private async createTag(req: Request, res: Response): Promise<void> {
+    try {
+        const { name } = req.body;
+        if (!name || typeof name !== 'string' || !name.trim()) {
+            res.status(400).json({ success: false, message: 'Tag name is required' });
+            return;
+        }
+        const result = await this.tagService.createTag({ name: name.trim() });
+        sendServiceResult(res, result);
+    } catch {
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+}
+    
     private async updateTag(req: Request, res: Response): Promise<void>{
 
          try {
             const id = parseInt(String(req.params.id));
             const { name } = req.body;
-            if (isNaN(id) || !Object.values(String).includes(name)) {
+            if (isNaN(id) || !name || typeof name !== 'string' || !name.trim()) {
                 res.status(400).json({ success: false, message: 'Invalid data' });
                 return;
             }

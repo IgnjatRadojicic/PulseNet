@@ -11,6 +11,9 @@ import CommunityPage from './pages/communities/CommunityPage';
 import CreatePostPage from './pages/communities/CreatePostPage';
 import EditPostPage from './pages/post/EditPostPage';
 import PostDetailPage from './pages/post/PostDetailPage';
+import CommentsPage from './pages/comments/CommentsPage';
+import AdminDashboard from './pages/admin/AdminDashboardPage';
+
 
 
 export default function App() {
@@ -28,11 +31,22 @@ export default function App() {
             <Route
                 path="/admin"
                 element={
-                    <ProtectedRoute requiredRole="admin">
-                        <div style={{ color: 'white' }}>Admin coming soon</div>
-                    </ProtectedRoute>
+                    //<ProtectedRoute requiredRole="admin">
+                        <AdminDashboard />
+                    //</ProtectedRoute>
                 }
             />
+
+
+            <Route
+                path="/post/:postId/comments"
+                element={
+                    //<ProtectedRoute requiredRole="user">
+                        <CommentsPage />
+                    //</ProtectedRoute>
+                }
+            />
+
 
               <Route path="/communities/:id" element={<CommunityPage />} />
               <Route path="/posts/:id" element={<PostDetailPage />} />

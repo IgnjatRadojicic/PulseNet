@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Info, HelpCircle, Shield, Users, Plus, FileText, Activity, Tag, ChevronDown, ChevronUp, Menu, UserPlus } from 'lucide-react';
+import { Home, Info, HelpCircle , Plus, Activity, ChevronDown, ChevronUp, Menu, UserPlus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { FEED } from '../../constants/feed';
 import CreateCommunityModal from '../../pages/communities/CreateCommunityModal';
@@ -79,11 +79,6 @@ function buildSections(isLoggedIn: boolean, isAdmin: boolean, userCommunities: {
             collapsible: true,
             items: [
                 { label: 'Dashboard', path: '/admin', icon: <Activity {...iconProps()} /> },
-                { label: 'Users', path: '/admin/users', icon: <Users {...iconProps()} /> },
-                { label: 'Communities', path: '/admin/communities', icon: <Shield {...iconProps()} /> },
-                { label: 'Audit Log', path: '/admin/audit', icon: <FileText {...iconProps()} /> },
-                { label: 'Health', path: '/admin/health', icon: <Activity {...iconProps()} /> },
-                { label: 'Tags', path: '/admin/tags', icon: <Tag {...iconProps()} /> },
             ],
         });
     }

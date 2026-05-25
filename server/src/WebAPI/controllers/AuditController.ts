@@ -20,22 +20,25 @@ export class AuditController {
         this.router.get('/audits/logs', authenticate, authorize(UserRole.Admin), this.getLogs.bind(this));
     }
 
-    private async getLogs(req: Request, res: Response): Promise<void> {
-        try {
-            const page = parseInt(String(req.query.page)) || PAGING.PAGE_MIN;
-            const limit = parseInt(String(req.query.limit)) || PAGING.LIMIT;
+private async getLogs(req: Request, res: Response): Promise<void> {
+    try {
+        const page = parseInt(String(req.query.page)) || PAGING.PAGE_MIN;
+        const limit = parseInt(String(req.query.limit)) || PAGING.LIMIT;
 
-            if (page < PAGING.PAGE_MIN || limit < PAGING.PAGE_MIN || limit > PAGING.PAGE_MAX) {
-                res.status(400).json({ success: false, message: 'Invalid pagination parameters' });
-                return;
-            }
-
-            const result = await this.auditService.getAuditLogs({ page, limit });
-            sendServiceResult(res, result);
-        } catch {
-            res.status(500).json({ success: false, message: 'Internal server error' });
+        if (page < PAGING.PAGE_MIN || limit < PAGING.PAGE_MIN || limit > PAGING.PAGE_MAX) {
+            res.status(400).json({ success: false, message: 'Invalid pagination parameters' });
+            return;
         }
+
+        console.log(`[AuditController] getLogs - page: ${page}, limit: ${limit}`);
+        const result = await this.auditService.getAuditLogs({ page, limit });
+        console.log(`[AuditController] getLogs - result success: ${result.success}`);
+        sendServiceResult(res, result);
+    } catch (error) {
+        console.error('[AuditController] getLogs failed:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
+}
 
     public getRouter(): Router {
         return this.router;

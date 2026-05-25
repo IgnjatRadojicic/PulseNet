@@ -27,7 +27,7 @@ export default function LandingRoles() {
                     Three levels of access,<br />one platform
                 </h2>
                 <p className="text-sm font-light leading-loose max-w-sm text-muted-soft">
-                    A role system from guest to administrator ensures every user has exactly the level of access they need — no more, no less.
+                    A role system from guest to administrator ensures every user has exactly the level of access they need  no more, no less.
                 </p>
             </div>
 

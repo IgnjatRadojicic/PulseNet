@@ -17,21 +17,23 @@ export class AuditRepository extends BaseRepository implements IAuditRepository 
         );
     }
 
-    async getAll(limit: number, offset: number): Promise<Audit[]> {
-        return this.executeRead(
-            `SELECT ${AUDIT_FIELDS} FROM audits ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-            [limit, offset],
-            mapAudit
-        );
-    }
+async getAll(limit: number, offset: number): Promise<Audit[]> {
+    const safeLimit = Math.max(1, Math.floor(Number(limit)));
+    const safeOffset = Math.max(0, Math.floor(Number(offset)));
+    return this.executeRead(
+        `SELECT ${AUDIT_FIELDS} FROM audits ORDER BY created_at DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+        [],
+        mapAudit
+    );
+}
 
-    async getByUserId(userId: number, limit: number, offset: number): Promise<Audit[]> {
-        return this.executeRead(
-            `SELECT ${AUDIT_FIELDS} FROM audits WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-            [userId, limit, offset],
-            mapAudit
-        );
-    }
+async getByUserId(userId: number, limit: number, offset: number): Promise<Audit[]> {
+    return this.executeRead(
+        `SELECT ${AUDIT_FIELDS} FROM audits WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        [Number(userId), Number(limit), Number(offset)],
+        mapAudit
+    );
+}
 
     async getTotalCount(): Promise<number> {
         return await this.executeScalar<number>(
