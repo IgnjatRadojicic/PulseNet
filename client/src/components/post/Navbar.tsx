@@ -184,7 +184,7 @@ export default function Navbar({ onToggleSidebar }: NavbarProps) {
                 {user ? (
                     <div className="flex items-center gap-3">
                     <Link
-                        to="/profile"
+                        to={`/profile/${user.id}`}
                         className="no-underline flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors"
                     >
                         {user.profileImage ? (

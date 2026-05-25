@@ -5,9 +5,11 @@ interface Props {
     profile: UserProfileDto;
     isOwnProfile: boolean;
     onFollow?: () => void;
+    onFollowersClick?: () => void;
+    onFollowingClick?: () => void;
 }
 
-export default function ProfileHeader({ profile, isOwnProfile, onFollow }: Props) {
+export default function ProfileHeader({ profile, isOwnProfile, onFollow, onFollowersClick, onFollowingClick }: Props) {
     const [isLoading, setIsLoading] = useState(false);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isHovering, setIsHovering] = useState(false);
@@ -35,8 +37,8 @@ export default function ProfileHeader({ profile, isOwnProfile, onFollow }: Props
     const stats = [
         { label: 'Posts', value: profile.stats?.postCount ?? 0 },
         { label: 'Comments', value: profile.stats?.commentCount ?? 0 },
-        { label: 'Followers', value: profile.stats?.followerCount ?? 0 },
-        { label: 'Following', value: profile.stats?.followingCount ?? 0 },
+        { label: 'Followers', value: profile.stats?.followerCount ?? 0, onClick: onFollowersClick },
+        { label: 'Following', value: profile.stats?.followingCount ?? 0, onClick: onFollowingClick },
     ];
 
     const username = profile.username ?? 'user';
@@ -117,10 +119,15 @@ export default function ProfileHeader({ profile, isOwnProfile, onFollow }: Props
                         
                         <div className="flex gap-6 mt-4">
                             {stats.map(stat => (
-                                <div key={stat.label}>
+                                <button
+                                    key={stat.label}
+                                    onClick={stat.onClick}
+                                    disabled={!stat.onClick}
+                                    className={`text-left transition-all ${stat.onClick ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`}
+                                >
                                     <span className="font-syne text-xl font-bold text-white">{stat.value}</span>
                                     <span className="text-xs text-muted-ghost ml-1">{stat.label}</span>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </div>

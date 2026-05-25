@@ -177,7 +177,7 @@ export default function PostCard(props: PostCardProps) {
  
                 {/* Comments */}
                 <Link
-                    to={`/posts/${props.id}`}
+                    to={`/post/${props.id}/comments`}
                     className="no-underline flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-white/45 hover:bg-white/5 transition-colors"
                 >
                     <MessageSquare size={16} strokeWidth={1.5} />

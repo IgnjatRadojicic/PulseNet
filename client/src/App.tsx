@@ -13,7 +13,7 @@ import EditPostPage from './pages/post/EditPostPage';
 import PostDetailPage from './pages/post/PostDetailPage';
 import CommentsPage from './pages/comments/CommentsPage';
 import AdminDashboard from './pages/admin/AdminDashboardPage';
-
+import ProfilePage from './pages/profile/ProfilePage';
 
 
 export default function App() {
@@ -26,7 +26,8 @@ export default function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/help" element={<HelpPage />} />     
             <Route path="/feed" element={<FeedPage />} />
-            <Route path="/communities/:id" element={<CommunityPage />} />            
+            <Route path="/communities/:id" element={<CommunityPage />} /> 
+            <Route path="/profile/:id" element={<ProfilePage />} />
 
             <Route
                 path="/admin"

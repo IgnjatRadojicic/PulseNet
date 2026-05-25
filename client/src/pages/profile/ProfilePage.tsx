@@ -6,6 +6,8 @@ import { useParticles } from '../../hooks/other/useParticles';
 import { UserProfileAPIService } from '../../api_services/users/UserProfileAPIService';
 import type { UserProfileDto } from '../../models/users/UserDto';
 import ProfileHeader from '../../components/profile/ProfileHeader';
+import FollowersList from '../../components/profile/FollowersList';
+import FollowingList from '../../components/profile/FollowingList';
 import { ArrowLeft, Edit2, Save, X } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -26,6 +28,8 @@ export default function ProfilePage() {
         username: ''
     });
     const [saving, setSaving] = useState(false);
+    const [showFollowersList, setShowFollowersList] = useState(false);
+    const [showFollowingList, setShowFollowingList] = useState(false);
     
     const isOwnProfile = !userId || (user && user.id === parseInt(userId));
     const targetUserId = userId ? parseInt(userId) : user?.id;
@@ -350,6 +354,8 @@ export default function ProfilePage() {
                         profile={profile}
                         isOwnProfile={isOwnProfile ?? false}
                         onFollow={handleFollow}
+                        onFollowersClick={() => setShowFollowersList(true)}
+                        onFollowingClick={() => setShowFollowingList(true)}
                     />
 
                     {/* About Section */}
@@ -477,6 +483,46 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modals */}
+            <FollowersList
+                userId={targetUserId!}
+                isOpen={showFollowersList}
+                onClose={() => setShowFollowersList(false)}
+                onFollowerRemoved={() => {
+                    if (targetUserId) {
+                        // Reload profile to update follower count
+                        const loadProfile = async () => {
+                            const res = await UserProfileAPIService.getUserProfile(targetUserId);
+                            if (res.success && res.data) {
+                                setProfile(res.data);
+                            }
+                        };
+                        loadProfile();
+                    }
+                }}
+                currentUserId={user?.id}
+                token={token}
+            />
+            <FollowingList
+                userId={targetUserId!}
+                isOpen={showFollowingList}
+                onClose={() => setShowFollowingList(false)}
+                onFollowingChanged={() => {
+                    if (targetUserId) {
+                        // Reload profile to update following count
+                        const loadProfile = async () => {
+                            const res = await UserProfileAPIService.getUserProfile(targetUserId);
+                            if (res.success && res.data) {
+                                setProfile(res.data);
+                            }
+                        };
+                        loadProfile();
+                    }
+                }}
+                currentUserId={user?.id}
+                token={token}
+            />
         </div>
     );
 }
