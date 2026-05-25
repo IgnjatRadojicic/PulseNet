@@ -50,7 +50,7 @@ const slaveNodes: DbNode[] = [
             waitForConnections: true,
             connectionLimit: 10,
         }),
-        status: 'healthy',
+        status: 'unreachable',
         responseTime: 0,
         lastChecked: null,
         name: 'slave1',
@@ -65,7 +65,7 @@ const slaveNodes: DbNode[] = [
             waitForConnections: true,
             connectionLimit: 10,
         }),
-        status: 'healthy',
+        status: 'unreachable',
         responseTime: 0,
         lastChecked: null,
         name: 'slave2',
@@ -78,6 +78,8 @@ let healthCheckInterval: ReturnType<typeof setInterval> | null = null;
 
 async function checkNode(node: DbNode): Promise<void> {
     const start = Date.now();
+    const prevStatus = node.status;
+
     try {
         const conn = await node.pool.getConnection();
         await conn.query('SELECT 1');
@@ -91,6 +93,10 @@ async function checkNode(node: DbNode): Promise<void> {
     } finally {
         node.lastChecked = new Date();
     }
+
+    if (prevStatus !== node.status) {
+        console.warn(`[db] ${node.name} status changed: ${prevStatus} -> ${node.status}`);
+    }    
 }
 
 export function startHealthCheck(intervalMS: number = 10000): void {
@@ -121,9 +127,15 @@ export function getWriteConnection(): ServiceResult<Pool> {
 }
 
 export function getReadConnection(): ServiceResult<Pool> {
+    console.log('[db] Node states:', {
+        master: { name: currentMaster.name, status: currentMaster.status },
+        slaves: slaveNodes.map(s => ({ name: s.name, status: s.status }))
+    });
+
     const healthySlaves = slaveNodes.filter(
         s => s !== currentMaster && s.status !== 'unreachable'
     );
+
 
     if (healthySlaves.length === 0) {
         if (currentMaster.status === 'unreachable') {
