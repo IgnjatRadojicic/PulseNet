@@ -2,7 +2,7 @@ import { API } from '../constants/api';
 import { AUTH } from '../constants/auth';
 
 
-export type ApiResponse<T = unknown> = {
+export type ApiResponse<T> = {
     success: boolean;
     data?: T;
     message?: string;
@@ -27,7 +27,7 @@ async function handleResponse<T>(res: Response): Promise<ApiResponse<T>> {
     }
 }
 
-export async function apiGet<T = unknown>(path: string): Promise<ApiResponse<T>> {
+export async function apiGet<T>(path: string): Promise<ApiResponse<T>> {
     try {
         const res = await fetch(`${API.BASE_URL}${path}`, { headers: buildHeaders() });
         return handleResponse<T>(res);
@@ -36,7 +36,7 @@ export async function apiGet<T = unknown>(path: string): Promise<ApiResponse<T>>
     }
 }
 
-export async function apiPost<T = unknown>(path: string, body?: unknown): Promise<ApiResponse<T>> {
+export async function apiPost<T>(path: string, body?: unknown): Promise<ApiResponse<T>> {
     try {
         const res = await fetch(`${API.BASE_URL}${path}`, {
             method: 'POST',
@@ -49,7 +49,7 @@ export async function apiPost<T = unknown>(path: string, body?: unknown): Promis
     }
 }
 
-export async function apiPut<T = unknown>(path: string, body?: unknown): Promise<ApiResponse<T>> {
+export async function apiPut<T>(path: string, body?: unknown): Promise<ApiResponse<T>> {
     try {
         const res = await fetch(`${API.BASE_URL}${path}`, {
             method: 'PUT',
@@ -62,7 +62,7 @@ export async function apiPut<T = unknown>(path: string, body?: unknown): Promise
     }
 }
 
-export async function apiDelete<T = unknown>(path: string): Promise<ApiResponse<T>> {
+export async function apiDelete<T>(path: string): Promise<ApiResponse<T>> {
     try {
         const res = await fetch(`${API.BASE_URL}${path}`, {
             method: 'DELETE',
