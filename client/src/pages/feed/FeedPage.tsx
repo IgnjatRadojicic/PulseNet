@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import AppLayout from '../../components/layout/AppLayout';
 import PostCard from '../../components/post/Postcard';
 import { useAuth } from '../../hooks/auth/useAuthHook';
@@ -14,34 +14,40 @@ export default function FeedPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const fetchPosts = useCallback(async () => {
-        setLoading(true);
-        setError('');
+    useEffect(() => {
+        let ignore = false;
 
-        const data = user
-            ? await postApi.getFeed()
-            : await postApi.getPublicPosts();
+        async function load() {
+            setLoading(true);
+            setError('');
 
-        if (data.success) {
-            setPosts(data.data ?? []);
-        } else {
-            setError(data.message || 'Failed to load posts');
+            const postData = user
+                ? await postApi.getFeed()
+                : await postApi.getPublicPosts();
+
+            if (ignore) return;
+
+            if (postData.success) {
+                setPosts(postData.data ?? []);
+            } else {
+                setError(postData.message || 'Failed to load posts');
+            }
+
+            if (user) {
+                const communityData = await communityApi.getMine();
+                if (!ignore && communityData.success && communityData.data) {
+                    setCommunities(communityData.data.map(c => ({ id: c.id, name: c.name })));
+                }
+            }
+
+            if (!ignore) setLoading(false);
         }
 
-        setLoading(false);
+        load();
+
+        return () => { ignore = true; };
     }, [user]);
 
-    const fetchCommunities = useCallback(async () => {
-        const data = await communityApi.getMine();
-        if (data.success && data.data) {
-            setCommunities(data.data.map(c => ({ id: c.id, name: c.name })));
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchPosts();
-        if (user) fetchCommunities();
-    }, [user, fetchPosts, fetchCommunities]);
 
     return (
         <AppLayout communities={communities}>
@@ -68,7 +74,7 @@ export default function FeedPage() {
                     >
                         <p>{error}</p>
                         <button
-                            onClick={fetchPosts}
+                            onClick={() => window.location.reload()}
                             className="mt-3 text-xs text-pulse hover:underline"
                             style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                         >

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Heart, MessageSquare, Share2, User, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../hooks/auth/useAuthHook';
-import { API } from '../../constants/api';
+import { postApi } from '../../api_services/post/PostAPIService';
  
 interface PostCardProps {
     id: number;
@@ -51,20 +51,14 @@ export default function PostCard(props: PostCardProps) {
  
     async function handleLike() {
         if (!user || likeLoading) return;
- 
+
         setLikeLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            const method = liked ? 'DELETE' : 'POST';
-            const res = await fetch(`${API.BASE_URL}posts/${props.id}/like`, {
-                method,
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-            const data = await res.json();
-            if (data.success) {
+            const res = liked
+                ? await postApi.unlike(props.id)
+                : await postApi.like(props.id);
+
+            if (res.success) {
                 setLiked(!liked);
                 setLikeCount(prev => liked ? prev - 1 : prev + 1);
             }
@@ -203,4 +197,3 @@ export default function PostCard(props: PostCardProps) {
         </div>
     );
 }
-
