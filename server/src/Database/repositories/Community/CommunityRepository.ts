@@ -6,15 +6,19 @@ import { RowDataPacket } from 'mysql2';
 
 export class CommunityRepository extends BaseRepository implements ICommunityRepository {
 
-    async create(community: Community): Promise<Community | null> {
+async create(community: Community): Promise<Community | null> {
+    try {
         const result = await this.executeWrite(
             'INSERT INTO communities (name, description, rules, type, avatar, creator_id) VALUES (?, ?, ?, ?, ?, ?)',
-            [community.communityName, community.description, community.rules, community.communityType, community.icon, community.creatorId]
+            [community.name, community.description, community.rules, community.type, community.avatar, community.creatorId]
         );
         if (!result?.insertId) return null;
-        return new Community(result.insertId, community.communityName, community.description, community.rules, community.communityType, community.icon, community.creatorId, new Date());
+        return new Community(result.insertId, community.name, community.description, community.rules, community.type, community.avatar, community.creatorId, new Date());
+    } catch (err: any) {
+        if (err.code === 'ER_DUP_ENTRY') return null;
+        throw err;
     }
-
+}
     async getById(id: number): Promise<Community | null> {
         return this.executeReadOne(
             `SELECT ${COMMUNITY_FIELDS} FROM communities WHERE id = ?`,
@@ -71,7 +75,7 @@ export class CommunityRepository extends BaseRepository implements ICommunityRep
     async update(community: Community): Promise<Community | null> {
         const result = await this.executeWrite(
             'UPDATE communities SET name = ?, description = ?, rules = ?, type = ?, avatar = ? WHERE id = ?',
-            [community.communityName, community.description, community.rules, community.communityType, community.icon, community.id]
+            [community.name, community.description, community.rules, community.type, community.avatar, community.id]
         );
         if (!result || result.affectedRows === 0) return null;
         return community;

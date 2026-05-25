@@ -47,7 +47,7 @@ export class PostService implements IPostService {
 
         return new PostDto(
             post.id, post.title, post.content, post.mediaUrl,
-            post.communityId, community?.communityName?? '',
+            post.communityId, community?.name?? '',
             post.authorId, author?.username ?? '',
             author?.profileImage ?? null,
             isLiked,
@@ -81,7 +81,7 @@ export class PostService implements IPostService {
         const authorMap = new Map<number, { username: string; profileImage: string | null }>(
             authors.map((u: User) => [u.id, { username: u.username, profileImage: u.profileImage }])
         );
-        const communityMap = new Map(communities.map((c: Community) => [c.id, c.communityName]));
+        const communityMap = new Map(communities.map((c: Community) => [c.id, c.name]));
 
         return posts.map(post => {
             const author = authorMap.get(post.authorId);

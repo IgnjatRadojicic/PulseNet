@@ -26,6 +26,12 @@ export class CommunityService implements ICommunityService {
     ) {}
 
     async createCommunity(input: CreateCommunityInput): Promise<ServiceResult<CommunityDto>> {
+
+        const existing = await this.communityRepository.searchByName(input.name);
+        if (existing.some(c => c.name.toLowerCase() === input.name.toLowerCase())) {
+            return { success: false, message: 'Community name already taken', errorCode: ErrorCode.ALREADY_EXISTS };
+        }
+
         const community = await this.communityRepository.create(
             new Community(0, input.name, input.description, input.rules, input.type, input.avatar, input.creatorId)
         );
@@ -121,7 +127,7 @@ export class CommunityService implements ICommunityService {
             action: 'COMMUNITY_DELETED',
             entityType: 'community',
             entityId: input.communityId,
-            details: JSON.stringify({ name: existing.communityName, memberCount }),
+            details: JSON.stringify({ name: existing.name, memberCount }),
         });
 
         return { success: true, data: true };
@@ -138,7 +144,7 @@ export class CommunityService implements ICommunityService {
             return { success: false, message: 'Already a member or request pending', errorCode: ErrorCode.ALREADY_EXISTS };
         }
 
-        const status = community.communityType === 'private' ? 'pending' : 'active';
+        const status = community.type === 'private' ? 'pending' : 'active';
 
         const result = await this.communityMemberRepository.addMember(
             input.userId, input.communityId, CommunityRole.Member, status
@@ -172,8 +178,8 @@ export class CommunityService implements ICommunityService {
     private async buildCommunityDto(community: Community): Promise<CommunityDto> {
         const memberCount = await this.communityMemberRepository.getMemberCount(community.id);
         return new CommunityDto(
-            community.id, community.communityName, community.description, community.rules,
-            community.communityType, community.icon, community.creatorId,
+            community.id, community.name, community.description, community.rules,
+            community.type, community.avatar, community.creatorId,
             memberCount ?? 0, community.createdAt
         );
     }
