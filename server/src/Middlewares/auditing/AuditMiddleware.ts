@@ -1,11 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { IAuditService } from '../../Domain/services/audit/IAuditService';
 
+type JsonResponseBody = {
+    success?: boolean;
+};
+
 export function createAuditMiddleware(auditService: IAuditService) {
     return (req: Request, res: Response, next: NextFunction): void => {
         const originalJson = res.json.bind(res);
 
-        res.json = (body: any) => {
+        res.json = (body: JsonResponseBody) => {
             const userId = req.user?.id ?? null;
             const method = req.method;
             const path = req.originalUrl;
