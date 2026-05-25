@@ -81,7 +81,7 @@ export function CommentSection({ postId }: Props) {
 
       <div className="relative z-10" style={{ padding: '56px 64px 72px' }}>
       <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet" />
-        {/* ── HEADER ── */}
+        {/*  HEADER  */}
         <div className="flex items-center justify-between" style={{ marginBottom: '52px' }}>
 
           {/* Left: accent line + title + count */}
@@ -107,7 +107,7 @@ export function CommentSection({ postId }: Props) {
             )}
           </div>
 
-          {/* Right: sort buttons — always shown, underline on active */}
+          {/* Right: sort buttons  always shown, underline on active */}
           <div className="flex items-center">
             {(['newest', 'popular'] as Sort[]).map(opt => (
               <SortBtn key={opt} active={sort === opt} onClick={() => setSort(opt)}>
@@ -117,7 +117,7 @@ export function CommentSection({ postId }: Props) {
           </div>
         </div>
 
-        {/* ── INPUT BOX ── */}
+        {/*  INPUT BOX  */}
         <div
           style={{
             margin: '0 auto 64px',
@@ -173,7 +173,7 @@ export function CommentSection({ postId }: Props) {
           </div>
         </div>
 
-        {/* ── COMMENT LIST ── */}
+        {/*  COMMENT LIST  */}
         {loading ? (
           <Skeleton />
         ) : sorted.length === 0 ? (
@@ -204,7 +204,7 @@ export function CommentSection({ postId }: Props) {
   );
 }
 
-/* ── Sort button ── */
+/*  Sort button  */
 function SortBtn({ active, onClick, children }: {
   active: boolean; onClick: () => void; children: React.ReactNode;
 }) {
@@ -228,7 +228,7 @@ function SortBtn({ active, onClick, children }: {
       }}
     >
       {children}
-      {/* Underline indicator — visible on active, hidden on inactive */}
+      {/* Underline indicator  visible on active, hidden on inactive */}
       <span
         style={{
           position: 'absolute',
@@ -245,7 +245,7 @@ function SortBtn({ active, onClick, children }: {
   );
 }
 
-/* ── Reusable action button (POST / REPLY / SAVE) ── */
+/*  Reusable action button (POST / REPLY / SAVE)  */
 export function ActionButton({ active, onClick, disabled, children }: {
   active: boolean; onClick: () => void; disabled: boolean; children: React.ReactNode;
 }) {
@@ -272,7 +272,7 @@ export function ActionButton({ active, onClick, disabled, children }: {
   );
 }
 
-/* ── Skeleton loader ── */
+/*  Skeleton loader  */
 function Skeleton() {
   return (
     <div>
@@ -300,7 +300,7 @@ function Skeleton() {
   );
 }
 
-/* ── Empty state ── */
+/*  Empty state  */
 function Empty() {
   return (
     <div className="text-center" style={{ padding: '56px 0', border: '1px dashed rgba(255,255,255,0.08)' }}>

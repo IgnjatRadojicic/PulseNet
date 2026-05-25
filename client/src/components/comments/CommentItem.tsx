@@ -130,7 +130,7 @@ export function CommentItem({
           )}
         </div>
 
-        {/* Edit / delete — fade in on hover */}
+        {/* Edit / delete  fade in on hover */}
         {canEdit && !isEditing && (
           <div
             className="flex items-center"
@@ -225,7 +225,7 @@ export function CommentItem({
   );
 }
 
-/* ── Inline helpers ── */
+/*  Inline helpers  */
 
 function ActionBtn({ onClick, active, children }: {
   onClick: () => void; active?: boolean; children: React.ReactNode;
@@ -271,7 +271,7 @@ function HoverBtn({ onClick, danger, children }: {
   );
 }
 
-/* ── Reply list ── */
+/*  Reply list  */
 interface ReplyListProps {
   replies: CommentDto[];
   currentUserId?: number;

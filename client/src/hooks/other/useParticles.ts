@@ -96,7 +96,7 @@ export function useParticles(
         const mouse = mouseRef.current;
 
         for (const s of shapesRef.current) {
-            // Mouse repulsion — only when mouse is present
+            // Mouse repulsion  only when mouse is present
             let dist = Infinity;
             if (mouse) {
                 const dx = mouse.x - s.x;

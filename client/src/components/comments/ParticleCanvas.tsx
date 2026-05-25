@@ -112,9 +112,9 @@ function useParticles(
     return { draw };
 }
 
-// ─────────────────────────────────────────────
+// 
 // useEKG
-// ─────────────────────────────────────────────
+// 
 const SCROLL_SPEED    = 1.4;
 const GLOW_HALF_WIDTH = 140;
 const BEATS_PER_WIDTH = 6;
@@ -195,9 +195,9 @@ function useEKG(
     return { draw };
 }
 
-// ─────────────────────────────────────────────
-// ParticleCanvas — two layered canvases
-// ─────────────────────────────────────────────
+// 
+// ParticleCanvas  two layered canvases
+// 
 export function ParticleCanvas() {
     const containerRef      = useRef<HTMLDivElement>(null);
     const particleCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -277,9 +277,9 @@ export function ParticleCanvas() {
             ref={containerRef}
             style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
         >
-            {/* Shapes layer — repels on mouse proximity */}
+            {/* Shapes layer  repels on mouse proximity */}
             <canvas ref={particleCanvasRef} style={{ ...canvasStyle, opacity: 0.9 }} />
-            {/* EKG layer — scrolling heartbeat trace */}
+            {/* EKG layer  scrolling heartbeat trace */}
             <canvas ref={ekgCanvasRef} style={{ ...canvasStyle, opacity: 0.7 }} />
         </div>
     );
