@@ -69,7 +69,7 @@ const auditRepository = new AuditRepository();
 // Services
 const auditService = new AuditService(auditRepository);
 const authService = new AuthService(userRepository);
-const userService = new UserService(userRepository, userFollowRepository, auditService);
+const userService = new UserService(userRepository, userFollowRepository, auditService, postRepository, commentReadWriteRepository);
 const postService = new PostService(
     postRepository, postLikeRepository, postTagRepository, postCommentRepository,
     userRepository, userFollowRepository,

@@ -18,15 +18,20 @@ import {
     GetFollowingInput,
 } from '../../Domain/types/inputs/UserInputs';
 import bcrypt from 'bcryptjs';
+import { ICommentReadWriteRepository } from '../../Domain/repositories/comments/ICommentReadWriteRepository';
+import { IPostRepository } from '../../Domain/repositories/post_repository/IPostRepository';
+import { UserProfileDto } from '../../Domain/DTOs/users/UserDto';
 
 export class UserService implements IUserService {
     private readonly saltRounds: number = parseInt(process.env.SALT_ROUNDS || '10', 10);
 
     public constructor(
-        private userRepository: IUserRepository,
-        private userFollowRepository: IUserFollowRepository,
-        private auditService: IAuditService
-    ) {}
+    private userRepository: IUserRepository,
+    private userFollowRepository: IUserFollowRepository,
+    private auditService: IAuditService,
+    private postRepository: IPostRepository,
+    private commentRepository: ICommentReadWriteRepository
+) {}
 
 
     async getAllUsers(): Promise<ServiceResult<UserDto[]>> {
@@ -74,18 +79,38 @@ export class UserService implements IUserService {
         return { success: true, data: this.toDto(updated) };        
     }
 
-    async getUserProfile(userId: number, requesterId: number): Promise<ServiceResult<UserDto>> {
-        const user = await this.userRepository.getById(userId);
-        if (!user) {
-            return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };
-        }
-        const dto = this.toDto(user);
-        if (requesterId !== userId) {
-            const isFollowing = await this.userFollowRepository.isFollowing(requesterId, userId);
-            (dto as any).isFollowing = isFollowing;
-        }
-        return { success: true, data: dto };
+    async getUserProfile(userId: number, currentUserId?: number): Promise<ServiceResult<UserProfileDto>> {
+    const user = await this.userRepository.getById(userId);
+    if (!user) {
+        return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };
     }
+
+    const [posts, comments, followerCount, followingCount] = await Promise.all([
+        this.postRepository.getByAuthorId(userId),
+        this.commentRepository.getByAuthor(userId),
+        this.userFollowRepository.getFollowerCount(userId),
+        this.userFollowRepository.getFollowingCount(userId),
+    ]);
+
+    let isFollowing = false;
+    if (currentUserId && currentUserId !== userId) {
+        isFollowing = await this.userFollowRepository.isFollowing(currentUserId, userId);
+    }
+
+    const profileDto = new UserProfileDto(
+        user.id, user.username, user.email, user.firstName, user.lastName,
+        user.bio, user.profileImage, user.role, new Date(),
+        {
+            postCount: posts.length,
+            commentCount: comments.length,
+            followerCount: followerCount ?? 0,
+            followingCount: followingCount ?? 0,
+        },
+        isFollowing
+    );
+
+    return { success: true, data: profileDto };
+}
 
     async updateRole(input: UpdateRoleInput): Promise<ServiceResult<boolean>> {
         const existing = await this.userRepository.getById(input.userId);

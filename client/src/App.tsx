@@ -32,9 +32,9 @@ export default function App() {
             <Route
                 path="/admin"
                 element={
-                    //<ProtectedRoute requiredRole="admin">
+                    <ProtectedRoute requiredRole="admin">
                         <AdminDashboard />
-                    //</ProtectedRoute>
+                    </ProtectedRoute>
                 }
             />
 
@@ -42,9 +42,9 @@ export default function App() {
             <Route
                 path="/post/:postId/comments"
                 element={
-                    //<ProtectedRoute requiredRole="user">
+                    <ProtectedRoute requiredRole="user">
                         <CommentsPage />
-                    //</ProtectedRoute>
+                    </ProtectedRoute>
                 }
             />
 
