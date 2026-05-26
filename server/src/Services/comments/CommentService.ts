@@ -41,7 +41,7 @@ export class CommentService implements ICommentService {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        if (input.parentId !== null) {
+        if (input.parentId !== 0 && input.parentId !== null) {
             const parentResult = await this.commentReadWriteRepository.getById(input.parentId);
             if (!parentResult.ok) {
                 return { success: false, message: 'Parent comment not found', errorCode: ErrorCode.NOT_FOUND };
@@ -53,6 +53,10 @@ export class CommentService implements ICommentService {
             if (parent.parentId !== null) {
                 return { success: false, message: 'Maximum comment depth is 2 levels', errorCode: ErrorCode.VALIDATION_ERROR };
             }
+        }
+
+        if(input.parentId === 0) {
+            input.parentId = null;
         }
 
         const commentResult = await this.commentReadWriteRepository.create(
