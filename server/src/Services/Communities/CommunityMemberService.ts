@@ -25,17 +25,17 @@ export class CommunityMemberService implements ICommunityMemberService {
     }
 
     async updateMemberRole(input: UpdateCommunityMemberRoleInput): Promise<ServiceResult<boolean>> {
-        const existing = await this.communityMemberRepository.getMember(input.targetUserId, input.communityId);
-        if (!existing) {
+        const existingResult = await this.communityMemberRepository.getMember(input.targetUserId, input.communityId);
+        if (!existingResult.ok) {
             return { success: false, message: 'Member not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const requester = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!requester || requester.role !== CommunityRole.Moderator) {
+        const requesterResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+        if (!requesterResult.ok || requesterResult.data.role !== CommunityRole.Moderator) {
             return { success: false, message: 'Only moderators can change roles', errorCode: ErrorCode.FORBIDDEN };
         }
 
-        const oldRole = existing.role;
+        const oldRole = existingResult.data.role;
 
         const result = await this.communityMemberRepository.updateMemberRole(input.targetUserId, input.communityId, input.role);
         if (!result) {
@@ -54,17 +54,17 @@ export class CommunityMemberService implements ICommunityMemberService {
     }
 
     async updateMemberStatus(input: UpdateCommunityMemberStatusInput): Promise<ServiceResult<boolean>> {
-        const existing = await this.communityMemberRepository.getMember(input.targetUserId, input.communityId);
-        if (!existing) {
+        const existingResult = await this.communityMemberRepository.getMember(input.targetUserId, input.communityId);
+        if (!existingResult.ok) {
             return { success: false, message: 'Member not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const requester = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!requester || requester.role !== CommunityRole.Moderator) {
+        const requesterResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+        if (!requesterResult.ok || requesterResult.data.role !== CommunityRole.Moderator) {
             return { success: false, message: 'Only moderators can change member status', errorCode: ErrorCode.FORBIDDEN };
         }
 
-        const oldStatus = existing.status;
+        const oldStatus = existingResult.data.status;
 
         const result = await this.communityMemberRepository.updateMemberStatus(input.targetUserId, input.communityId, input.status);
         if (!result) {
@@ -83,17 +83,17 @@ export class CommunityMemberService implements ICommunityMemberService {
     }
 
     async removeMember(input: RemoveCommunityMemberInput): Promise<ServiceResult<boolean>> {
-        const existing = await this.communityMemberRepository.getMember(input.targetUserId, input.communityId);
-        if (!existing) {
+        const existingResult = await this.communityMemberRepository.getMember(input.targetUserId, input.communityId);
+        if (!existingResult.ok) {
             return { success: false, message: 'Member not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const requester = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!requester || requester.role !== CommunityRole.Moderator) {
+        const requesterResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+        if (!requesterResult.ok || requesterResult.data.role !== CommunityRole.Moderator) {
             return { success: false, message: 'Only moderators can remove members', errorCode: ErrorCode.FORBIDDEN };
         }
 
-        if (existing.role === CommunityRole.Moderator) {
+        if (existingResult.data.role === CommunityRole.Moderator) {
             return { success: false, message: 'Cannot remove a moderator', errorCode: ErrorCode.FORBIDDEN };
         }
 

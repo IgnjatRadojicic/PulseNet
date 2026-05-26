@@ -26,19 +26,20 @@ export class CommunityService implements ICommunityService {
     ) {}
 
     async createCommunity(input: CreateCommunityInput): Promise<ServiceResult<CommunityDto>> {
-
         const existing = await this.communityRepository.searchByName(input.name);
         if (existing.some(c => c.name.toLowerCase() === input.name.toLowerCase())) {
             return { success: false, message: 'Community name already taken', errorCode: ErrorCode.ALREADY_EXISTS };
         }
 
-        const community = await this.communityRepository.create(
+        const communityResult = await this.communityRepository.create(
             new Community(0, input.name, input.description, input.rules, input.type, input.avatar, input.creatorId)
         );
 
-        if (!community) {
+        if (!communityResult.ok) {
             return { success: false, message: 'Failed to create community', errorCode: ErrorCode.INTERNAL_ERROR };
         }
+
+        const community = communityResult.data;
 
         await this.communityMemberRepository.addMember(
             input.creatorId, community.id, CommunityRole.Moderator, 'active'
@@ -49,11 +50,11 @@ export class CommunityService implements ICommunityService {
     }
 
     async getCommunityById(input: GetCommunityByIdInput): Promise<ServiceResult<CommunityDto>> {
-        const community = await this.communityRepository.getById(input.communityId);
-        if (!community) {
+        const result = await this.communityRepository.getById(input.communityId);
+        if (!result.ok) {
             return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
-        const dto = await this.buildCommunityDto(community);
+        const dto = await this.buildCommunityDto(result.data);
         return { success: true, data: dto };
     }
 
@@ -82,36 +83,38 @@ export class CommunityService implements ICommunityService {
     }
 
     async updateCommunity(input: UpdateCommunityInput): Promise<ServiceResult<CommunityDto>> {
-        const existing = await this.communityRepository.getById(input.communityId);
-        if (!existing) {
+        const existingResult = await this.communityRepository.getById(input.communityId);
+        if (!existingResult.ok) {
             return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
+        const existing = existingResult.data;
 
-        const member = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!member || member.role !== CommunityRole.Moderator) {
+        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+        if (!memberResult.ok || memberResult.data.role !== CommunityRole.Moderator) {
             return { success: false, message: 'Only moderators can update the community', errorCode: ErrorCode.FORBIDDEN };
         }
 
-        const updated = await this.communityRepository.update(
-           new Community(input.communityId, input.name, input.description, input.rules, input.type, input.avatar, existing.creatorId, existing.createdAt)
+        const updateResult = await this.communityRepository.update(
+            new Community(input.communityId, input.name, input.description, input.rules, input.type, input.avatar, existing.creatorId, existing.createdAt)
         );
 
-        if (!updated) {
+        if (!updateResult.ok) {
             return { success: false, message: 'Update failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
-        const dto = await this.buildCommunityDto(updated);
+        const dto = await this.buildCommunityDto(updateResult.data);
         return { success: true, data: dto };
     }
 
     async deleteCommunity(input: DeleteCommunityInput): Promise<ServiceResult<boolean>> {
-        const existing = await this.communityRepository.getById(input.communityId);
-        if (!existing) {
+        const existingResult = await this.communityRepository.getById(input.communityId);
+        if (!existingResult.ok) {
             return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
+        const existing = existingResult.data;
 
-        const member = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (!member || member.role !== CommunityRole.Moderator) {
+        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+        if (!memberResult.ok || memberResult.data.role !== CommunityRole.Moderator) {
             return { success: false, message: 'Only moderators can delete the community', errorCode: ErrorCode.FORBIDDEN };
         }
 
@@ -134,17 +137,17 @@ export class CommunityService implements ICommunityService {
     }
 
     async joinCommunity(input: JoinCommunityInput): Promise<ServiceResult<boolean>> {
-        const community = await this.communityRepository.getById(input.communityId);
-        if (!community) {
+        const communityResult = await this.communityRepository.getById(input.communityId);
+        if (!communityResult.ok) {
             return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const existing = await this.communityMemberRepository.getMember(input.userId, input.communityId);
-        if (existing) {
+        const existingMember = await this.communityMemberRepository.getMember(input.userId, input.communityId);
+        if (existingMember.ok) {
             return { success: false, message: 'Already a member or request pending', errorCode: ErrorCode.ALREADY_EXISTS };
         }
 
-        const status = community.type === 'private' ? 'pending' : 'active';
+        const status = communityResult.data.type === 'private' ? 'pending' : 'active';
 
         const result = await this.communityMemberRepository.addMember(
             input.userId, input.communityId, CommunityRole.Member, status
@@ -158,12 +161,12 @@ export class CommunityService implements ICommunityService {
     }
 
     async leaveCommunity(input: LeaveCommunityInput): Promise<ServiceResult<boolean>> {
-        const member = await this.communityMemberRepository.getMember(input.userId, input.communityId);
-        if (!member) {
+        const memberResult = await this.communityMemberRepository.getMember(input.userId, input.communityId);
+        if (!memberResult.ok) {
             return { success: false, message: 'You are not a member of this community', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        if (member.role === CommunityRole.Moderator) {
+        if (memberResult.data.role === CommunityRole.Moderator) {
             return { success: false, message: 'Moderators cannot leave. Transfer ownership first.', errorCode: ErrorCode.FORBIDDEN };
         }
 
@@ -180,7 +183,7 @@ export class CommunityService implements ICommunityService {
         return new CommunityDto(
             community.id, community.name, community.description, community.rules,
             community.type, community.avatar, community.creatorId,
-            memberCount ?? 0, community.createdAt
+            memberCount, community.createdAt
         );
     }
 }

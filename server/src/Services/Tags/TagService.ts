@@ -10,11 +10,11 @@ export class TagService implements ITagService {
     public constructor(private tagRepository: ITagRepository) {}
 
     async createTag(input: CreateTagInput): Promise<ServiceResult<TagDto>> {
-        const created = await this.tagRepository.create(input.name);
-        if (!created) {
+        const result = await this.tagRepository.create(input.name);
+        if (!result.ok) {
             return { success: false, message: 'Failed to create tag', errorCode: ErrorCode.INTERNAL_ERROR };
         }
-        return { success: true, data: this.toDto(created) };
+        return { success: true, data: this.toDto(result.data) };
     }
 
     async getAllTags(): Promise<ServiceResult<TagDto[]>> {
@@ -24,12 +24,12 @@ export class TagService implements ITagService {
 
     async updateTag(input: UpdateTagInput): Promise<ServiceResult<boolean>> {
         const existing = await this.tagRepository.getById(input.id);
-        if (!existing) {
+        if (!existing.ok) {
             return { success: false, message: 'Tag not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         const result = await this.tagRepository.update(new Tag(input.id, input.name));
-        if (!result) {
+        if (!result.ok) {
             return { success: false, message: 'Update failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
@@ -38,7 +38,7 @@ export class TagService implements ITagService {
 
     async deleteTag(input: DeleteTagInput): Promise<ServiceResult<boolean>> {
         const existing = await this.tagRepository.getById(input.id);
-        if (!existing) {
+        if (!existing.ok) {
             return { success: false, message: 'Tag not found', errorCode: ErrorCode.NOT_FOUND };
         }
 

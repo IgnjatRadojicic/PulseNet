@@ -16,7 +16,8 @@ import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFoll
 import { IPostService } from '../../Domain/services/post/IPostService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import * as PostInputs from '../../Domain/types/inputs/PostInputs';
-import { CommunityRole } from '../../Domain/enums/CommunityRole'
+import { CommunityRole } from '../../Domain/enums/CommunityRole';
+
 export class PostService implements IPostService {
     public constructor(
         private postRepository: IPostRepository,
@@ -26,12 +27,12 @@ export class PostService implements IPostService {
         private userRepository: IUserRepository,
         private userFollowRepository: IUserFollowRepository,
         private communityRepository: ICommunityRepository,
-        private communityMemberRepository:  ICommunityMemberRepository,
+        private communityMemberRepository: ICommunityMemberRepository,
         private tagRepository: ITagRepository
     ) {}
 
     private async buildPostDto(post: Post, requesterId: number | null): Promise<PostDto> {
-        const [author, community, likeCount, commentCount, tagIds] = await Promise.all([
+        const [authorResult, communityResult, likeCount, commentCount, tagIds] = await Promise.all([
             this.userRepository.getById(post.authorId),
             this.communityRepository.getById(post.communityId),
             this.postLikeRepository.getLikeCount(post.id),
@@ -47,9 +48,9 @@ export class PostService implements IPostService {
 
         return new PostDto(
             post.id, post.title, post.content, post.mediaUrl,
-            post.communityId, community?.name?? '',
-            post.authorId, author?.username ?? '',
-            author?.profileImage ?? null,
+            post.communityId, communityResult.ok ? communityResult.data.name : '',
+            post.authorId, authorResult.ok ? authorResult.data.username : '',
+            authorResult.ok ? authorResult.data.profileImage : null,
             isLiked,
             likeCount, commentCount,
             tags.map((t: Tag) => t.name).filter((s): s is string => s !== null),
@@ -100,22 +101,24 @@ export class PostService implements IPostService {
     }
 
     async createPost(input: PostInputs.CreatePostInput): Promise<ServiceResult<PostDto>> {
-        const community = await this.communityRepository.getById(input.communityId);
-        if (!community) {
+        const communityResult = await this.communityRepository.getById(input.communityId);
+        if (!communityResult.ok) {
             return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const member = await this.communityMemberRepository.getMember(input.authorId, input.communityId);
-        if (!member || member.status !== 'active') {
+        const memberResult = await this.communityMemberRepository.getMember(input.authorId, input.communityId);
+        if (!memberResult.ok || memberResult.data.status !== 'active') {
             return { success: false, message: 'You must be an active member to post', errorCode: ErrorCode.FORBIDDEN };
         }
 
-        const post = await this.postRepository.create(
+        const postResult = await this.postRepository.create(
             new Post(0, input.title, input.content, input.mediaUrl, input.communityId, input.authorId)
         );
-        if (!post) {
+        if (!postResult.ok) {
             return { success: false, message: 'Failed to create post', errorCode: ErrorCode.INTERNAL_ERROR };
         }
+
+        const post = postResult.data;
 
         if (input.tagIds.length > 0) {
             await this.postTagRepository.addTags(post.id, input.tagIds);
@@ -126,17 +129,17 @@ export class PostService implements IPostService {
     }
 
     async getPostById(input: PostInputs.GetPostInput): Promise<ServiceResult<PostDto>> {
-        const post = await this.postRepository.getById(input.postId);
-        if (!post) {
+        const postResult = await this.postRepository.getById(input.postId);
+        if (!postResult.ok) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
-        const dto = await this.buildPostDto(post, input.requesterId);
+        const dto = await this.buildPostDto(postResult.data, input.requesterId);
         return { success: true, data: dto };
     }
 
     async getCommunityPosts(input: PostInputs.GetCommunityPostsInput): Promise<ServiceResult<PostDto[]>> {
-        const community = await this.communityRepository.getById(input.communityId);
-        if (!community) {
+        const communityResult = await this.communityRepository.getById(input.communityId);
+        if (!communityResult.ok) {
             return { success: false, message: 'Community not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -181,39 +184,41 @@ export class PostService implements IPostService {
     }
 
     async updatePost(input: PostInputs.UpdatePostInput): Promise<ServiceResult<PostDto>> {
-        const post = await this.postRepository.getById(input.postId);
-        if (!post) {
+        const postResult = await this.postRepository.getById(input.postId);
+        if (!postResult.ok) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
+        const post = postResult.data;
 
-        const member = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
+        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
         const isAuthor = post.authorId === input.requesterId;
-        const isModerator = member?.role === CommunityRole.Moderator;
+        const isModerator = memberResult.ok && memberResult.data.role === CommunityRole.Moderator;
 
         if (!isAuthor && !isModerator) {
             return { success: false, message: 'Not authorized to update this post', errorCode: ErrorCode.FORBIDDEN };
         }
 
-        const updated = await this.postRepository.update(
+        const updateResult = await this.postRepository.update(
             new Post(input.postId, input.title, input.content, input.mediaUrl, post.communityId, post.authorId)
         );
-        if (!updated) {
+        if (!updateResult.ok) {
             return { success: false, message: 'Update failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
-        const dto = await this.buildPostDto(updated, input.requesterId);
+        const dto = await this.buildPostDto(updateResult.data, input.requesterId);
         return { success: true, data: dto };
     }
 
     async deletePost(input: PostInputs.DeletePostInput): Promise<ServiceResult<boolean>> {
-        const post = await this.postRepository.getById(input.postId);
-        if (!post) {
+        const postResult = await this.postRepository.getById(input.postId);
+        if (!postResult.ok) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
+        const post = postResult.data;
 
-        const member = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
+        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
         const isAuthor = post.authorId === input.requesterId;
-        const isModerator = member?.role === CommunityRole.Moderator;
+        const isModerator = memberResult.ok && memberResult.data.role === CommunityRole.Moderator;
 
         if (!isAuthor && !isModerator) {
             return { success: false, message: 'Not authorized to delete this post', errorCode: ErrorCode.FORBIDDEN };
@@ -227,11 +232,11 @@ export class PostService implements IPostService {
     }
 
     async likePost(input: PostInputs.LikePostInput): Promise<ServiceResult<boolean>> {
-        const post = await this.postRepository.getById(input.postId);
-        if (!post) {
+        const postResult = await this.postRepository.getById(input.postId);
+        if (!postResult.ok) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
-        if (post.authorId === input.userId) {
+        if (postResult.data.authorId === input.userId) {
             return { success: false, message: 'You cannot like your own post', errorCode: ErrorCode.VALIDATION_ERROR };
         }
         const alreadyLiked = await this.postLikeRepository.hasLiked(input.userId, input.postId);
@@ -258,15 +263,15 @@ export class PostService implements IPostService {
     }
 
     async addTag(input: PostInputs.AddTagInput): Promise<ServiceResult<boolean>> {
-        const post = await this.postRepository.getById(input.postId);
-        if (!post) {
+        const postResult = await this.postRepository.getById(input.postId);
+        if (!postResult.ok) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
-        if (post.authorId !== input.requesterId) {
+        if (postResult.data.authorId !== input.requesterId) {
             return { success: false, message: 'Only the author can add tags', errorCode: ErrorCode.FORBIDDEN };
         }
-        const tag = await this.tagRepository.getById(input.tagId);
-        if (!tag) {
+        const tagResult = await this.tagRepository.getById(input.tagId);
+        if (!tagResult.ok) {
             return { success: false, message: 'Tag not found', errorCode: ErrorCode.NOT_FOUND };
         }
         const result = await this.postTagRepository.addTag(input.postId, input.tagId);
@@ -277,11 +282,11 @@ export class PostService implements IPostService {
     }
 
     async removeTag(input: PostInputs.RemoveTagInput): Promise<ServiceResult<boolean>> {
-        const post = await this.postRepository.getById(input.postId);
-        if (!post) {
+        const postResult = await this.postRepository.getById(input.postId);
+        if (!postResult.ok) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
-        if (post.authorId !== input.requesterId) {
+        if (postResult.data.authorId !== input.requesterId) {
             return { success: false, message: 'Only the author can remove tags', errorCode: ErrorCode.FORBIDDEN };
         }
         const result = await this.postTagRepository.removeTag(input.postId, input.tagId);

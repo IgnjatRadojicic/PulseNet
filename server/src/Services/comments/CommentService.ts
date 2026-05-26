@@ -35,16 +35,17 @@ export class CommentService implements ICommentService {
     ) {}
 
     async addComment(input: AddCommentInput): Promise<ServiceResult<CommentDto>> {
-        const post = await this.postRepository.getById(input.postId);
-        if (!post) {
+        const postResult = await this.postRepository.getById(input.postId);
+        if (!postResult.ok) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         if (input.parentId !== null) {
-            const parent = await this.commentReadWriteRepository.getById(input.parentId);
-            if (!parent) {
+            const parentResult = await this.commentReadWriteRepository.getById(input.parentId);
+            if (!parentResult.ok) {
                 return { success: false, message: 'Parent comment not found', errorCode: ErrorCode.NOT_FOUND };
             }
+            const parent = parentResult.data;
             if (parent.postId !== input.postId) {
                 return { success: false, message: 'Parent comment does not belong to this post', errorCode: ErrorCode.VALIDATION_ERROR };
             }
@@ -53,42 +54,44 @@ export class CommentService implements ICommentService {
             }
         }
 
-        const comment = await this.commentReadWriteRepository.create(
+        const commentResult = await this.commentReadWriteRepository.create(
             new Comment(0, input.postId, input.authorId, input.parentId ?? null, 0, input.content, false, false, new Date(), new Date()));
 
-        if (!comment) {
+        if (!commentResult.ok) {
             return { success: false, message: 'Failed to create comment', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
-        const dto = await this.buildCommentDto(comment);
+        const dto = await this.buildCommentDto(commentResult.data);
         return { success: true, data: dto };
     }
 
     async getCommentsByPost(input: GetCommentsByPostInput): Promise<ServiceResult<CommentDto[]>> {
-    const post = await this.postRepository.getById(input.postId);
-    if (!post) {
-        return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
+        const postResult = await this.postRepository.getById(input.postId);
+        if (!postResult.ok) {
+            return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
+        }
+
+        const comments = await this.commentReadWriteRepository.getByPost(input.postId);
+        const dtos = await Promise.all(
+            comments.map(c => this.buildCommentDto(c, input.currentUserId ?? undefined))
+        );
+
+        const rootComments = dtos.filter(c => c.parentId === null);
+        const replies = dtos.filter(c => c.parentId !== null);
+        for (const root of rootComments) {
+            root.replies = replies.filter(r => r.parentId === root.id);
+        }
+
+        return { success: true, data: rootComments };
     }
-
-    const comments = await this.commentReadWriteRepository.getByPost(input.postId);
-    const dtos = await Promise.all(
-        comments.map(c => this.buildCommentDto(c, input.currentUserId ?? undefined)) // ← proslijedi
-    );
-
-    const rootComments = dtos.filter(c => c.parentId === null);
-    const replies = dtos.filter(c => c.parentId !== null);
-    for (const root of rootComments) {
-        root.replies = replies.filter(r => r.parentId === root.id);
-    }
-
-    return { success: true, data: rootComments };
-}
 
     async updateComment(input: UpdateCommentInput): Promise<ServiceResult<CommentDto>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId);
-        if (!comment) {
+        const commentResult = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!commentResult.ok) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
+        const comment = commentResult.data;
+
         if (comment.authorId !== input.requesterId) {
             return { success: false, message: 'Not authorized to update this comment', errorCode: ErrorCode.FORBIDDEN };
         }
@@ -107,19 +110,20 @@ export class CommentService implements ICommentService {
     }
 
     async softDeleteComment(input: DeleteCommentInput): Promise<ServiceResult<boolean>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId);
-        if (!comment) {
+        const commentResult = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!commentResult.ok) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
+        const comment = commentResult.data;
 
-        const post = await this.postRepository.getById(comment.postId);
-        if (!post) {
+        const postResult = await this.postRepository.getById(comment.postId);
+        if (!postResult.ok) {
             return { success: false, message: 'Associated post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const member = await this.communityMemberRepository.getMember(input.requesterId, post.communityId);
+        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, postResult.data.communityId);
         const isAuthor = comment.authorId === input.requesterId;
-        const isModerator = member?.role === 'moderator';
+        const isModerator = memberResult.ok && memberResult.data.role === 'moderator';
 
         if (!isAuthor && !isModerator) {
             return { success: false, message: 'Not authorized to delete this comment', errorCode: ErrorCode.FORBIDDEN };
@@ -134,13 +138,13 @@ export class CommentService implements ICommentService {
     }
 
     async flagComment(input: FlagCommentInput): Promise<ServiceResult<boolean>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId);
-        if (!comment) {
+        const commentResult = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!commentResult.ok) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
-        const member = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
-        if (member?.role !== 'moderator') {
+        const memberResult = await this.communityMemberRepository.getMember(input.requesterId, input.communityId);
+        if (!memberResult.ok || memberResult.data.role !== 'moderator') {
             return { success: false, message: 'Only moderators can flag comments', errorCode: ErrorCode.FORBIDDEN };
         }
 
@@ -153,8 +157,8 @@ export class CommentService implements ICommentService {
     }
 
     async likeComment(input: LikeCommentInput): Promise<ServiceResult<boolean>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId);
-        if (!comment) {
+        const commentResult = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!commentResult.ok) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -172,8 +176,8 @@ export class CommentService implements ICommentService {
     }
 
     async unlikeComment(input: UnlikeCommentInput): Promise<ServiceResult<boolean>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId);
-        if (!comment) {
+        const commentResult = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!commentResult.ok) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -191,8 +195,8 @@ export class CommentService implements ICommentService {
     }
 
     async findRootCommentsByPost(input: FindRootCommentsByPostInput): Promise<ServiceResult<CommentDto[]>> {
-        const post = await this.postRepository.getById(input.postId);
-        if (!post) {
+        const postResult = await this.postRepository.getById(input.postId);
+        if (!postResult.ok) {
             return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -202,21 +206,21 @@ export class CommentService implements ICommentService {
     }
 
     async findRepliesByCommentId(input: FindRepliesByCommentIdInput): Promise<ServiceResult<CommentDto[]>> {
-    const comment = await this.commentReadWriteRepository.getById(input.commentId);
-    if (!comment) {
-        return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
+        const commentResult = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!commentResult.ok) {
+            return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
+        }
+
+        const replies = await this.commentQueryRepository.findRepliesByCommentId(input.commentId);
+        const dtos = await Promise.all(
+            replies.map(r => this.buildCommentDto(r, input.currentUserId ?? undefined))
+        );
+        return { success: true, data: dtos };
     }
 
-    const replies = await this.commentQueryRepository.findRepliesByCommentId(input.commentId);
-    const dtos = await Promise.all(
-        replies.map(r => this.buildCommentDto(r, input.currentUserId ?? undefined))
-    );
-    return { success: true, data: dtos };
-}
-
     async findRepliesPaginated(input: FindRepliesPaginatedInput): Promise<ServiceResult<CommentDto[]>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId);
-        if (!comment) {
+        const commentResult = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!commentResult.ok) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
@@ -230,42 +234,42 @@ export class CommentService implements ICommentService {
     }
 
     async getReplyCount(input: GetReplyCountInput): Promise<ServiceResult<number>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId);
-        if (!comment) {
+        const commentResult = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!commentResult.ok) {
             return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         const count = await this.commentQueryRepository.getReplyCount(input.commentId);
-        return { success: true, data: count ?? 0 };
+        return { success: true, data: count };
     }
 
     private async buildCommentDto(comment: Comment, currentUserId?: number): Promise<CommentDto> {
-    const [user, likesCount] = await Promise.all([
-        this.userRepository.getById(comment.authorId),
-        this.commentLikeRepository.getLikeCount(comment.id),
-    ]);
+        const [userResult, likesCount] = await Promise.all([
+            this.userRepository.getById(comment.authorId),
+            this.commentLikeRepository.getLikeCount(comment.id),
+        ]);
 
-    const username = user?.username;
+        const username = userResult.ok ? userResult.data.username : undefined;
 
-    let isLiked = false;
-    if (currentUserId) {
-        isLiked = await this.commentLikeRepository.hasLiked(currentUserId, comment.id);
+        let isLiked = false;
+        if (currentUserId) {
+            isLiked = await this.commentLikeRepository.hasLiked(currentUserId, comment.id);
+        }
+
+        return new CommentDto(
+            comment.id,
+            comment.isDeleted ? '[comment deleted]' : comment.content,
+            comment.postId,
+            comment.authorId,
+            comment.parentId,
+            comment.isDeleted,
+            comment.isFlagged,
+            [],
+            comment.createdAt,
+            comment.updatedAt,
+            username,
+            likesCount,
+            isLiked
+        );
     }
-
-    return new CommentDto(
-        comment.id,
-        comment.isDeleted ? '[comment deleted]' : comment.content,
-        comment.postId,
-        comment.authorId,
-        comment.parentId,
-        comment.isDeleted,
-        comment.isFlagged,
-        [],
-        comment.createdAt,
-        comment.updatedAt,
-        username,
-        likesCount ?? 0,
-        isLiked
-    );
-}
 }

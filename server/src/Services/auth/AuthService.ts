@@ -13,12 +13,12 @@ export class AuthService implements IAuthService {
     public constructor(private userRepository: IUserRepository) {}
 
     async login(input: LoginInput): Promise<ServiceResult<UserAuthDataDto>> {
-
-        const user = await this.userRepository.getByUsername(input.username);
-        if (!user) {
+        const userResult = await this.userRepository.getByUsername(input.username);
+        if (!userResult.ok) {
             return { success: false, message: 'Invalid username or password', errorCode: ErrorCode.UNAUTHORIZED };
         }
 
+        const user = userResult.data;
         const passwordValid = await bcrypt.compare(input.password, user.passwordHash);
         if (!passwordValid) {
             return { success: false, message: 'Invalid username or password', errorCode: ErrorCode.UNAUTHORIZED };
@@ -31,27 +31,27 @@ export class AuthService implements IAuthService {
     }
 
     async register(input: RegisterInput): Promise<ServiceResult<UserAuthDataDto>> {
-
         const existingUsername = await this.userRepository.getByUsername(input.username);
-        if (existingUsername) {
+        if (existingUsername.ok) {
             return { success: false, message: 'Username is already taken', errorCode: ErrorCode.ALREADY_EXISTS };
         }
 
         const existingEmail = await this.userRepository.getByEmail(input.email);
-        if (existingEmail) {
+        if (existingEmail.ok) {
             return { success: false, message: 'Email is already taken', errorCode: ErrorCode.ALREADY_EXISTS };
         }
 
         const hashedPassword = await bcrypt.hash(input.password, this.saltRounds);
 
-        const newUser = await this.userRepository.create(
+        const newUserResult = await this.userRepository.create(
             new User(0, input.username, input.email, input.firstName, input.lastName, input.bio ?? null, input.profileImage ?? null, 'user', hashedPassword)
         );
 
-        if (!newUser) {
+        if (!newUserResult.ok) {
             return { success: false, message: 'Registration failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
 
+        const newUser = newUserResult.data;
         return {
             success: true,
             data: new UserAuthDataDto(newUser.id, newUser.username, newUser.email, newUser.role),
