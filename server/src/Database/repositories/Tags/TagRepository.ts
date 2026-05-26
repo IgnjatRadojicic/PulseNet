@@ -2,25 +2,30 @@ import { Tag } from '../../../Domain/models/Tag';
 import { ITagRepository } from '../../../Domain/repositories/tags/ITagRepository';
 import { BaseRepository } from '../BaseRepository';
 import { mapTag, TAG_FIELDS } from '../../mappers/TagMapper';
+import { RepositoryResult } from '../../../Domain/types/RepositoryResult';
 
 export class TagRepository extends BaseRepository implements ITagRepository {
 
-    async create(name: string): Promise<Tag | null> {
+    async create(name: string): Promise<RepositoryResult<Tag>> {
         const result = await this.executeWrite(
             'INSERT INTO tags (name) VALUES (?)',
             [name]
         );
-        if (!result?.insertId) return null;
-        return new Tag(result.insertId, name);
+        if (!result.ok) return RepositoryResult.failure(result.message);
+        if (!result.data.insertId) return RepositoryResult.failure('Insert returned no ID');
+
+        return RepositoryResult.success(new Tag(result.data.insertId, name));
     }
 
-    async update(tag: Tag): Promise<Tag | null> {
+    async update(tag: Tag): Promise<RepositoryResult<Tag>> {
         const result = await this.executeWrite(
             'UPDATE tags SET name = ? WHERE id = ?',
             [tag.name, tag.id]
         );
-        if (!result || result.affectedRows === 0) return null;
-        return tag;
+        if (!result.ok) return RepositoryResult.failure(result.message);
+        if (result.data.affectedRows === 0) return RepositoryResult.notFound('Tag not found for update');
+
+        return RepositoryResult.success(tag);
     }
 
     async getAll(): Promise<Tag[]> {
@@ -31,7 +36,7 @@ export class TagRepository extends BaseRepository implements ITagRepository {
         );
     }
 
-    async getById(id: number): Promise<Tag | null> {
+    async getById(id: number): Promise<RepositoryResult<Tag>> {
         return this.executeReadOne(
             `SELECT ${TAG_FIELDS} FROM tags WHERE id = ?`,
             [id],
@@ -54,6 +59,6 @@ export class TagRepository extends BaseRepository implements ITagRepository {
             'DELETE FROM tags WHERE id = ?',
             [id]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 }

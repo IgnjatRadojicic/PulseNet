@@ -1,6 +1,4 @@
-import { Comment } from '../../../Domain/models/Comment';
 import { BaseRepository } from '../BaseRepository';
-import { mapComment, COMMENT_FIELDS } from '../../mappers/CommentMapper';
 import { ICommentLikeRepository } from '../../../Domain/repositories/comments/ICommentLikeRepository';
 
 export class CommentLikeRepository extends BaseRepository implements ICommentLikeRepository {
@@ -10,7 +8,7 @@ export class CommentLikeRepository extends BaseRepository implements ICommentLik
             `INSERT IGNORE INTO comment_likes (user_id, comment_id) VALUES (?, ?)`,
             [userId, commentId]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 
     async unlike(commentId: number, userId: number): Promise<boolean> {
@@ -18,25 +16,26 @@ export class CommentLikeRepository extends BaseRepository implements ICommentLik
             `DELETE FROM comment_likes WHERE user_id = ? AND comment_id = ?`,
             [userId, commentId]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 
-    async getLikeCount(commentId: number): Promise<number | null> {
-        return this.executeScalar<number>(
+    async getLikeCount(commentId: number): Promise<number> {
+        const result = await this.executeScalar<number>(
             `SELECT COUNT(*) as count 
              FROM comment_likes 
              WHERE comment_id = ?`,
             [commentId]
         );
+        return result.ok ? result.data : 0;
     }
 
     async hasLiked(userId: number, commentId: number): Promise<boolean> {
-        const count = await this.executeScalar<number>(
+        const result = await this.executeScalar<number>(
             `SELECT COUNT(*) as count 
              FROM comment_likes 
              WHERE user_id = ? AND comment_id = ?`,
             [userId, commentId]
         );
-        return (count ?? 0) > 0;
+        return result.ok && result.data > 0;
     }
 }

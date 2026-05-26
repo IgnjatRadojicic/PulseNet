@@ -3,19 +3,20 @@ import { ICommunityMemberRepository } from '../../../Domain/repositories/communi
 import { BaseRepository } from '../BaseRepository';
 import { mapCommunityMember, COMMUNITY_MEMBER_FIELDS } from '../../mappers/CommunityMemberMapper';
 import { CommunityRole } from '../../../Domain/enums/CommunityRole';
-
 import { RowDataPacket } from 'mysql2';
+import { RepositoryResult } from '../../../Domain/types/RepositoryResult';
 
 export class CommunityMemberRepository extends BaseRepository implements ICommunityMemberRepository {
 
     async getMemberCount(communityId: number): Promise<number> {
-        return await this.executeScalar<number>(
+        const result = await this.executeScalar<number>(
             'SELECT COUNT(*) as count FROM community_members WHERE community_id = ?',
             [communityId]
-        ) ?? 0;
+        );
+        return result.ok ? result.data : 0;
     }
 
-    async getMember(userId: number, communityId: number): Promise<CommunityMember | null> {
+    async getMember(userId: number, communityId: number): Promise<RepositoryResult<CommunityMember>> {
         return this.executeReadOne(
             `SELECT ${COMMUNITY_MEMBER_FIELDS} FROM community_members WHERE user_id = ? AND community_id = ?`,
             [userId, communityId],
@@ -44,7 +45,7 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
             'INSERT INTO community_members (user_id, community_id, role, status) VALUES (?, ?, ?, ?)',
             [userId, communityId, role, status]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 
     async updateMemberRole(userId: number, communityId: number, role: CommunityRole): Promise<boolean> {
@@ -52,7 +53,7 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
             'UPDATE community_members SET role = ? WHERE user_id = ? AND community_id = ?',
             [role, userId, communityId]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 
     async updateMemberStatus(userId: number, communityId: number, status: string): Promise<boolean> {
@@ -60,7 +61,7 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
             'UPDATE community_members SET status = ? WHERE user_id = ? AND community_id = ?',
             [status, userId, communityId]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 
     async removeMember(userId: number, communityId: number): Promise<boolean> {
@@ -68,6 +69,6 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
             'DELETE FROM community_members WHERE user_id = ? AND community_id = ?',
             [userId, communityId]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 }

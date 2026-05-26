@@ -9,7 +9,7 @@ export class UserFollowRepository extends BaseRepository implements IUserFollowR
             'INSERT IGNORE INTO user_follows (follower_id, following_id) VALUES (?, ?)',
             [followerId, followingId]
         );
-        return result !== null;
+        return result.ok;
     }
 
     async unfollow(followerId: number, followingId: number): Promise<boolean> {
@@ -17,15 +17,15 @@ export class UserFollowRepository extends BaseRepository implements IUserFollowR
             'DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?',
             [followerId, followingId]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 
     async isFollowing(followerId: number, followingId: number): Promise<boolean> {
-        const count = await this.executeScalar<number>(
+        const result = await this.executeScalar<number>(
             'SELECT COUNT(*) as count FROM user_follows WHERE follower_id = ? AND following_id = ?',
             [followerId, followingId]
         );
-        return (count ?? 0) > 0;
+        return result.ok && result.data > 0;
     }
 
     async getFollowerIds(userId: number): Promise<number[]> {
@@ -45,16 +45,18 @@ export class UserFollowRepository extends BaseRepository implements IUserFollowR
     }
 
     async getFollowerCount(userId: number): Promise<number> {
-        return await this.executeScalar<number>(
+        const result = await this.executeScalar<number>(
             'SELECT COUNT(*) as count FROM user_follows WHERE following_id = ?',
             [userId]
-        ) ?? 0;
+        );
+        return result.ok ? result.data : 0;
     }
 
     async getFollowingCount(userId: number): Promise<number> {
-        return await this.executeScalar<number>(
+        const result = await this.executeScalar<number>(
             'SELECT COUNT(*) as count FROM user_follows WHERE follower_id = ?',
             [userId]
-        ) ?? 0;
+        );
+        return result.ok ? result.data : 0;
     }
 }

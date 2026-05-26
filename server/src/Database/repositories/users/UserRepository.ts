@@ -2,19 +2,24 @@ import { BaseRepository } from '../BaseRepository';
 import { IUserRepository } from '../../../Domain/repositories/users/IUserRepository';
 import { User } from '../../../Domain/models/User';
 import { mapUser, USER_FIELDS, USER_FIELDS_PUBLIC } from '../../mappers/UserMapper';
+import { RepositoryResult } from '../../../Domain/types/RepositoryResult';
 
 export class UserRepository extends BaseRepository implements IUserRepository {
 
-    async create(user: User): Promise<User | null> {
+    async create(user: User): Promise<RepositoryResult<User>> {
         const result = await this.executeWrite(
             'INSERT INTO users (username, email, first_name, last_name, bio, profile_image, password_hash, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [user.username, user.email, user.firstName, user.lastName, user.bio, user.profileImage, user.passwordHash, user.role]
         );
-        if (!result?.insertId) return null;
-        return new User(result.insertId, user.username, user.email, user.firstName, user.lastName, user.bio, user.profileImage, user.role, user.passwordHash);
+        if (!result.ok) return RepositoryResult.failure(result.message);
+        if (!result.data.insertId) return RepositoryResult.failure('Insert returned no ID');
+
+        return RepositoryResult.success(
+            new User(result.data.insertId, user.username, user.email, user.firstName, user.lastName, user.bio, user.profileImage, user.role, user.passwordHash)
+        );
     }
 
-    async getById(id: number): Promise<User | null> {
+    async getById(id: number): Promise<RepositoryResult<User>> {
         return this.executeReadOne(`SELECT ${USER_FIELDS} FROM users WHERE id = ?`, [id], mapUser);
     }
 
@@ -28,7 +33,7 @@ export class UserRepository extends BaseRepository implements IUserRepository {
         );
     }
 
-    async getByUsername(username: string): Promise<User | null> {
+    async getByUsername(username: string): Promise<RepositoryResult<User>> {
         return this.executeReadOne(
             `SELECT ${USER_FIELDS} FROM users WHERE username = ?`,
             [username],
@@ -36,7 +41,7 @@ export class UserRepository extends BaseRepository implements IUserRepository {
         );
     }
 
-    async getByEmail(email: string): Promise<User | null> {
+    async getByEmail(email: string): Promise<RepositoryResult<User>> {
         return this.executeReadOne(
             `SELECT ${USER_FIELDS} FROM users WHERE email = ?`,
             [email],
@@ -52,13 +57,15 @@ export class UserRepository extends BaseRepository implements IUserRepository {
         );
     }
 
-    async update(user: User): Promise<User | null> {
+    async update(user: User): Promise<RepositoryResult<User>> {
         const result = await this.executeWrite(
             'UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ?, bio = ?, profile_image = ?, password_hash = ? WHERE id = ?',
             [user.username, user.email, user.firstName, user.lastName, user.bio, user.profileImage, user.passwordHash, user.id]
         );
-        if (!result || result.affectedRows === 0) return null;
-        return user;
+        if (!result.ok) return RepositoryResult.failure(result.message);
+        if (result.data.affectedRows === 0) return RepositoryResult.notFound('User not found for update');
+
+        return RepositoryResult.success(user);
     }
 
     async updateRole(id: number, role: string): Promise<boolean> {
@@ -66,7 +73,7 @@ export class UserRepository extends BaseRepository implements IUserRepository {
             'UPDATE users SET role = ? WHERE id = ?',
             [role, id]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 
     async delete(id: number): Promise<boolean> {
@@ -74,7 +81,7 @@ export class UserRepository extends BaseRepository implements IUserRepository {
             'DELETE FROM users WHERE id = ?',
             [id]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 
     async searchByUsername(query: string): Promise<User[]> {

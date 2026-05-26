@@ -6,11 +6,11 @@ import { ICommentQueryRepository } from '../../../Domain/repositories/comments/I
 export class CommentQueryRepository extends BaseRepository implements ICommentQueryRepository {
 
     async exists(id: number): Promise<boolean> {
-        const count = await this.executeScalar<number>(
+        const result = await this.executeScalar<number>(
             'SELECT COUNT(*) as count FROM comments WHERE id = ?',
             [id]
         );
-        return (count ?? 0) > 0;
+        return result.ok && result.data > 0;
     }
 
     async findRootCommentsByPost(postId: number): Promise<Comment[]> {
@@ -44,10 +44,11 @@ export class CommentQueryRepository extends BaseRepository implements ICommentQu
         );
     }
 
-    async getReplyCount(commentId: number): Promise<number | null> {
-        return this.executeScalar<number>(
+    async getReplyCount(commentId: number): Promise<number> {
+        const result = await this.executeScalar<number>(
             'SELECT COUNT(*) as count FROM comments WHERE parent_id = ?',
             [commentId]
         );
+        return result.ok ? result.data : 0;
     }
 }

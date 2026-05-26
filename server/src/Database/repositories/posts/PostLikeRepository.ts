@@ -9,7 +9,7 @@ export class PostLikeRepository extends BaseRepository implements IPostLikeRepos
             'INSERT IGNORE INTO post_likes (user_id, post_id) VALUES (?, ?)',
             [userId, postId]
         );
-        return result !== null;
+        return result.ok;
     }
 
     async removeLike(userId: number, postId: number): Promise<boolean> {
@@ -17,24 +17,23 @@ export class PostLikeRepository extends BaseRepository implements IPostLikeRepos
             'DELETE FROM post_likes WHERE user_id = ? AND post_id = ?',
             [userId, postId]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
-    
+
     async hasLiked(userId: number, postId: number): Promise<boolean> {
-        const result = await this.executeReadOne(
+        const result = await this.executeScalar<number>(
             'SELECT COUNT(*) as count FROM post_likes WHERE user_id = ? AND post_id = ?',
-            [userId, postId],
-            (row: RowDataPacket) => row.count as number
+            [userId, postId]
         );
-        return (result ?? 0) > 0;
+        return result.ok && result.data > 0;
     }
-    
+
     async getLikeCount(postId: number): Promise<number> {
         const result = await this.executeScalar<number>(
             'SELECT COUNT(*) as count FROM post_likes WHERE post_id = ?',
             [postId]
         );
-        return result ?? 0;
+        return result.ok ? result.data : 0;
     }
 
     async getLikeCountBatch(postIds: number[]): Promise<Map<number, number>> {
@@ -60,5 +59,4 @@ export class PostLikeRepository extends BaseRepository implements IPostLikeRepos
         );
         return new Set(rows);
     }
-
 }

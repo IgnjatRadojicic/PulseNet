@@ -3,19 +3,24 @@ import { IPostRepository } from '../../../Domain/repositories/post_repository/IP
 import { Post } from '../../../Domain/models/Post';
 import { mapPost, SELECT_FIELDS } from '../../mappers/PostMapper';
 import { RowDataPacket } from 'mysql2';
+import { RepositoryResult } from '../../../Domain/types/RepositoryResult';
 
 export class PostRepository extends BaseRepository implements IPostRepository {
 
-    async create(post: Post): Promise<Post | null> {
+    async create(post: Post): Promise<RepositoryResult<Post>> {
         const result = await this.executeWrite(
             'INSERT INTO posts (title, content, media_url, community_id, author_id) VALUES (?, ?, ?, ?, ?)',
             [post.title, post.content, post.mediaUrl, post.communityId, post.authorId]
         );
-        if (!result?.insertId) return null;
-        return new Post(result.insertId, post.title, post.content, post.mediaUrl, post.communityId, post.authorId);
+        if (!result.ok) return RepositoryResult.failure(result.message);
+        if (!result.data.insertId) return RepositoryResult.failure('Insert returned no ID');
+
+        return RepositoryResult.success(
+            new Post(result.data.insertId, post.title, post.content, post.mediaUrl, post.communityId, post.authorId)
+        );
     }
 
-    async getById(id: number): Promise<Post | null> {
+    async getById(id: number): Promise<RepositoryResult<Post>> {
         return this.executeReadOne(
             `SELECT ${SELECT_FIELDS} FROM posts WHERE id = ?`,
             [id],
@@ -77,13 +82,15 @@ export class PostRepository extends BaseRepository implements IPostRepository {
         );
     }
 
-    async update(post: Post): Promise<Post | null> {
+    async update(post: Post): Promise<RepositoryResult<Post>> {
         const result = await this.executeWrite(
             'UPDATE posts SET title = ?, content = ?, media_url = ? WHERE id = ?',
             [post.title, post.content, post.mediaUrl, post.id]
         );
-        if (!result || result.affectedRows === 0) return null;
-        return post;
+        if (!result.ok) return RepositoryResult.failure(result.message);
+        if (result.data.affectedRows === 0) return RepositoryResult.notFound('Post not found for update');
+
+        return RepositoryResult.success(post);
     }
 
     async delete(id: number): Promise<boolean> {
@@ -91,6 +98,6 @@ export class PostRepository extends BaseRepository implements IPostRepository {
             'DELETE FROM posts WHERE id = ?',
             [id]
         );
-        return (result?.affectedRows ?? 0) > 0;
+        return result.ok && result.data.affectedRows > 0;
     }
 }
