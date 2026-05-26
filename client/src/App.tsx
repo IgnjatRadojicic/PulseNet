@@ -26,8 +26,8 @@ export default function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/help" element={<HelpPage />} />     
             <Route path="/feed" element={<FeedPage />} />
-            <Route path="/communities/:id" element={<CommunityPage />} /> 
-            <Route path="/profile/:id" element={<ProfilePage />} />
+            <Route path="/communities/:userId" element={<CommunityPage />} /> 
+            <Route path="/profile/:userId" element={<ProfilePage />} />
 
             <Route
                 path="/admin"

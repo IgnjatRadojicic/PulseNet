@@ -99,7 +99,7 @@ export default function PostCard(props: PostCardProps) {
                         </div>
                     )}
                     <Link
-                        to={`/users/${props.authorId}`}
+                        to={`/profile/${props.authorId}`}
                         className="no-underline text-xs text-white/50 hover:text-white/70 hover:underline"
                     >
                         {props.authorUsername}
