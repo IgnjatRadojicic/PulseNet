@@ -6,14 +6,6 @@ dotenv.config();
 
 type NodeStatus = 'healthy' | 'degraded' | 'unreachable';
 
-interface DbNode {
-    pool: Pool;
-    status: NodeStatus;
-    responseTime: number;
-    lastChecked: Date | null;
-    name: string;
-}
-
 interface HealthStatus {
     name: string;
     status: NodeStatus;
@@ -23,147 +15,72 @@ interface HealthStatus {
 
 const DEGRADED_THRESHOLD_MS = 500;
 
-const masterNode: DbNode = {
-    pool: mysql.createPool({
-        host: process.env.DB_MASTER_HOST ?? 'localhost',
-        port: Number(process.env.DB_MASTER_PORT) || 3306,
-        user: process.env.DB_USER ?? '',
-        password: process.env.DB_PASSWORD ?? '',
-        database: process.env.DB_NAME ?? '',
-        waitForConnections: true,
-        connectionLimit: 10,
-    }),
-    status: 'healthy',
-    responseTime: 0,
-    lastChecked: null,
-    name: 'master',
-};
+let status: NodeStatus = 'healthy';
+let responseTime = 0;
+let lastChecked: Date | null = null;
 
-const slaveNodes: DbNode[] = [
-    {
-        pool: mysql.createPool({
-            host: process.env.DB_SLAVE1_HOST,
-            port: Number(process.env.DB_SLAVE1_PORT) || 3307,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME,
-            waitForConnections: true,
-            connectionLimit: 10,
-        }),
-        status: 'unreachable',
-        responseTime: 0,
-        lastChecked: null,
-        name: 'slave1',
-    },
-    {
-        pool: mysql.createPool({
-            host: process.env.DB_SLAVE2_HOST,
-            port: Number(process.env.DB_SLAVE2_PORT) || 3308,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME,
-            waitForConnections: true,
-            connectionLimit: 10,
-        }),
-        status: 'unreachable',
-        responseTime: 0,
-        lastChecked: null,
-        name: 'slave2',
-    },
-];
+const pool: Pool = mysql.createPool({
+    host: process.env.DB_HOST ?? 'localhost',
+    port: Number(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER ?? '',
+    password: process.env.DB_PASSWORD ?? '',
+    database: process.env.DB_NAME ?? '',
+    ssl: process.env.DB_SSL === 'true'
+        ? { rejectUnauthorized: true }
+        : undefined,
+    waitForConnections: true,
+    connectionLimit: 10,
+});
 
-let currentMaster: DbNode = masterNode;
-let currentSlaveIndex = 0;
 let healthCheckInterval: ReturnType<typeof setInterval> | null = null;
 
-async function checkNode(node: DbNode): Promise<void> {
+async function checkNode(): Promise<void> {
     const start = Date.now();
-    const prevStatus = node.status;
+    const prevStatus = status;
 
     try {
-        const conn = await node.pool.getConnection();
+        const conn = await pool.getConnection();
         await conn.query('SELECT 1');
         conn.release();
         const elapsed = Date.now() - start;
-        node.responseTime = elapsed;
-        node.status = elapsed > DEGRADED_THRESHOLD_MS ? 'degraded' : 'healthy';
+        responseTime = elapsed;
+        status = elapsed > DEGRADED_THRESHOLD_MS ? 'degraded' : 'healthy';
     } catch {
-        node.status = 'unreachable';
-        node.responseTime = -1;
+        status = 'unreachable';
+        responseTime = -1;
     } finally {
-        node.lastChecked = new Date();
+        lastChecked = new Date();
     }
 
-    if (prevStatus !== node.status) {
-        console.warn(`[db] ${node.name} status changed: ${prevStatus} -> ${node.status}`);
-    }    
+    if (prevStatus !== status) {
+        console.warn(`[db] status changed: ${prevStatus} -> ${status}`);
+    }
 }
 
 export function startHealthCheck(intervalMS: number = 10000): void {
     if (healthCheckInterval) return;
-
-    healthCheckInterval = setInterval(async () => {
-        await checkNode(currentMaster);
-
-        for (const slave of slaveNodes) {
-            await checkNode(slave);
-        }
-
-        if (currentMaster.status === 'unreachable') {
-            const healthySlave = slaveNodes.find(s => s.status !== 'unreachable');
-            if (healthySlave) {
-                console.warn(`[db] Master unreachable, promoting ${healthySlave.name} to master`);
-                currentMaster = healthySlave;
-            }
-        }
-    }, intervalMS);
+    healthCheckInterval = setInterval(checkNode, intervalMS);
 }
 
 export function getWriteConnection(): ServiceResult<Pool> {
-    if (currentMaster.status === 'unreachable') {
-        return { success: false, message: 'Master node is unreachable, writing is not available' };
+    if (status === 'unreachable') {
+        return { success: false, message: 'Database is unreachable, writing is not available' };
     }
-    return { success: true, data: currentMaster.pool };
+    return { success: true, data: pool };
 }
 
 export function getReadConnection(): ServiceResult<Pool> {
-    console.log('[db] Node states:', {
-        master: { name: currentMaster.name, status: currentMaster.status },
-        slaves: slaveNodes.map(s => ({ name: s.name, status: s.status }))
-    });
-
-    const healthySlaves = slaveNodes.filter(
-        s => s !== currentMaster && s.status !== 'unreachable'
-    );
-
-
-    if (healthySlaves.length === 0) {
-        if (currentMaster.status === 'unreachable') {
-            return { success: false, message: 'No DB node is available' };
-        }
-        return { success: true, data: currentMaster.pool };
+    if (status === 'unreachable') {
+        return { success: false, message: 'Database is unreachable' };
     }
-
-    const slave = healthySlaves[currentSlaveIndex % healthySlaves.length];
-    currentSlaveIndex++;
-    return { success: true, data: slave.pool };
+    return { success: true, data: pool };
 }
 
 export function getHealthStatus(): HealthStatus[] {
-    return [currentMaster, ...slaveNodes].map(node => ({
-        name: node.name,
-        status: node.status,
-        responseTime: node.responseTime,
-        lastChecked: node.lastChecked,
-    }));
-}
-
-export function promoteSlaveToMaster(slaveIdx: number): ServiceResult<string> {
-    const slave = slaveNodes[slaveIdx];
-    if (!slave) {
-        return { success: false, message: `Slave on index ${slaveIdx} does not exist` };
-    }
-    console.warn(`[db] Manual promotion: ${slave.name} became master`);
-    currentMaster = slave;
-    return { success: true, data: slave.name };
+    return [{
+        name: 'primary',
+        status,
+        responseTime,
+        lastChecked,
+    }];
 }
