@@ -18,15 +18,16 @@ export abstract class BaseRepository {
         return rows.map(mapper);
     }
 
-    protected async executeReadOne<T>(
-        query: string,
-        params: QueryParams,
-        mapper: (row: RowDataPacket) => T
-    ): Promise<RepositoryResult<T>> {
-        const conn = getReadConnection();
-        if (!conn.success || !conn.data) {
-            return RepositoryResult.failure('Read connection unavailable');
-        }
+protected async executeReadOne<T>(
+    query: string,
+    params: QueryParams,
+    mapper: (row: RowDataPacket) => T
+): Promise<RepositoryResult<T>> {
+    const conn = getReadConnection();
+    console.log('[BaseRepository] executeReadOne connection:', { success: conn.success, hasData: !!conn.data });
+    if (!conn.success || !conn.data) {
+        return RepositoryResult.failure('Read connection unavailable');
+    }
         const [rows] = await conn.data.execute<RowDataPacket[]>(query, params);
         if (rows.length === 0) {
             return RepositoryResult.notFound();

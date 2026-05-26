@@ -46,7 +46,7 @@ export const optionalAuthenticate = (req: Request, res: Response, next: NextFunc
         const decoded = jwt.verify(token, process.env.JWT_SECRET ?? '') as JwtPayload;
         req.user = decoded;
     } catch {
-        // invalid token — ignore, treat as unauthenticated
+        // invalid token ignore, treat as unauthenticated
     }
     next();
 };

@@ -306,7 +306,7 @@ export default function PostDetailPage() {
           </div>
         </div>
 
-        {/* Comments — delegated to CommentSection */}
+        {/* Comments delegated to CommentSection */}
         <CommentSection
           postId={postId}
           token={token}

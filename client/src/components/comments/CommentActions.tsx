@@ -86,7 +86,7 @@ export default function CommentActions({
                 </button>
             )}
 
-            {/* Edit / Delete — owner only */}
+            {/* Edit / Delete owner only */}
             {isOwner && (
                 <>
                     <button
