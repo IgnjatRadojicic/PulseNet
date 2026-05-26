@@ -201,15 +201,17 @@ export class CommentService implements ICommentService {
     }
 
     async findRepliesByCommentId(input: FindRepliesByCommentIdInput): Promise<ServiceResult<CommentDto[]>> {
-        const comment = await this.commentReadWriteRepository.getById(input.commentId);
-        if (!comment) {
-            return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
-        }
-
-        const replies = await this.commentQueryRepository.findRepliesByCommentId(input.commentId);
-        const dtos = await Promise.all(replies.map(r => this.buildCommentDto(r)));
-        return { success: true, data: dtos };
+    const comment = await this.commentReadWriteRepository.getById(input.commentId);
+    if (!comment) {
+        return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
     }
+
+    const replies = await this.commentQueryRepository.findRepliesByCommentId(input.commentId);
+    const dtos = await Promise.all(
+        replies.map(r => this.buildCommentDto(r, input.currentUserId ?? undefined))
+    );
+    return { success: true, data: dtos };
+}
 
     async findRepliesPaginated(input: FindRepliesPaginatedInput): Promise<ServiceResult<CommentDto[]>> {
         const comment = await this.commentReadWriteRepository.getById(input.commentId);

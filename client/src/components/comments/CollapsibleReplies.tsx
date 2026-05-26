@@ -31,6 +31,19 @@ export default function CollapsibleReplies({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const handleReplyLike = (id: number, isCurrentlyLiked: boolean) => {
+        setReplies(prev => prev.map(reply => {
+            if (reply.id !== id) return reply;
+            const currentLikes = reply.likesCount ?? 0;
+            return {
+                ...reply,
+                likesCount: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
+                isLiked: !isCurrentlyLiked,
+            };
+        }));
+        onLike(id, isCurrentlyLiked); // proslijedi gore za API poziv
+    };
+
     // Fetch replies when expanded
     useEffect(() => {
         if (!isExpanded || replies.length > 0) return;
@@ -101,7 +114,7 @@ export default function CollapsibleReplies({
                                     onReply={onReply}
                                     onEdit={onEdit}
                                     onDelete={onDelete}
-                                    onLike={onLike}
+                                    onLike={handleReplyLike}
                                     replyCount={reply.replies?.length ?? 0}
                                 />
                             ))}

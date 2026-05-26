@@ -21,6 +21,7 @@ export class CommentController {
         this.router.delete('/comments/:id', authenticate, this.deleteComment.bind(this));
         this.router.post('/comments/:id/like', authenticate, this.likeComment.bind(this));
         this.router.delete('/comments/:id/like', authenticate, this.unlikeComment.bind(this));
+        this.router.get('/comments/:commentId/replies', optionalAuthenticate, this.findRepliesByCommentId.bind(this));
     }
 
     private async getCommentsByPost(req: Request, res: Response): Promise<void> {
@@ -128,6 +129,20 @@ export class CommentController {
             const result = await this.commentService.unlikeComment({
                 userId: req.user!.id, commentId,
             });
+            sendServiceResult(res, result);
+        } catch {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    }
+
+    private async findRepliesByCommentId(req: Request, res: Response): Promise<void> {
+        try {
+            const commentId = Number(req.params.commentId);
+            if (Number.isNaN(commentId) || commentId <= 0) {
+                res.status(400).json({ success: false, message: 'Invalid comment id' });
+                return;
+            }
+            const result = await this.commentService.findRepliesByCommentId({ commentId, currentUserId: req.user?.id ?? 0 });
             sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });

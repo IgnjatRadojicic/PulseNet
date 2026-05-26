@@ -44,6 +44,7 @@ export type FindRootCommentsByPostInput = {
 
 export type FindRepliesByCommentIdInput = {
     commentId: number;
+    currentUserId: number;
 };
 
 export type FindRepliesPaginatedInput = {
