@@ -53,10 +53,11 @@ export default function LandingPage() {
                 )}
 
 
-                <div ref={ekgWrapRef} className="relative">
-                    <canvas
+                <div ref={ekgWrapRef} className="relative" >
+                    <canvas 
+                        
                         ref={eCanvasRef}
-                        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                        className="absolute top-0 left-0 w-full h-full pointer-events-none "
                         style={{ zIndex: 0 }}
                     />
                     <div className="relative" style={{ zIndex: 1 }}>
