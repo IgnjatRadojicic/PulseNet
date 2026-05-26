@@ -51,6 +51,7 @@ export type FindRepliesPaginatedInput = {
     commentId: number;
     limit: number;
     offset: number;
+    currentUserId: number;
 };
 
 export type GetReplyCountInput = {

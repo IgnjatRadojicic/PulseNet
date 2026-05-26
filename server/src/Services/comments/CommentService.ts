@@ -22,6 +22,7 @@ import {
     FindRepliesPaginatedInput,
     GetReplyCountInput,
 } from '../../Domain/types/inputs/CommentInputs';
+import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 
 export class CommentService implements ICommentService {
     public constructor(
@@ -29,7 +30,8 @@ export class CommentService implements ICommentService {
         private commentQueryRepository: ICommentQueryRepository,
         private commentLikeRepository: ICommentLikeRepository,
         private postRepository: IPostRepository,
-        private communityMemberRepository: ICommunityMemberRepository
+        private communityMemberRepository: ICommunityMemberRepository,
+        private userRepository: IUserRepository
     ) {}
 
     async addComment(input: AddCommentInput): Promise<ServiceResult<CommentDto>> {
@@ -62,7 +64,6 @@ export class CommentService implements ICommentService {
         return { success: true, data: dto };
     }
 
-    // CommentService.ts
     async getCommentsByPost(input: GetCommentsByPostInput): Promise<ServiceResult<CommentDto[]>> {
     const post = await this.postRepository.getById(input.postId);
     if (!post) {
@@ -224,7 +225,7 @@ export class CommentService implements ICommentService {
         }
 
         const replies = await this.commentQueryRepository.findRepliesPaginated(input.commentId, input.limit, input.offset);
-        const dtos = await Promise.all(replies.map(r => this.buildCommentDto(r)));
+        const dtos = await Promise.all(replies.map(r => this.buildCommentDto(r, input.currentUserId)));
         return { success: true, data: dtos };
     }
 
@@ -239,8 +240,13 @@ export class CommentService implements ICommentService {
     }
 
     private async buildCommentDto(comment: Comment, currentUserId?: number): Promise<CommentDto> {
-    const likesCount = await this.commentLikeRepository.getLikeCount(comment.id) ?? 0;
-    
+    const [user, likesCount] = await Promise.all([
+        this.userRepository.getById(comment.authorId),
+        this.commentLikeRepository.getLikeCount(comment.id),
+    ]);
+
+    const username = user?.username;
+
     let isLiked = false;
     if (currentUserId) {
         isLiked = await this.commentLikeRepository.hasLiked(currentUserId, comment.id);
@@ -257,7 +263,8 @@ export class CommentService implements ICommentService {
         [],
         comment.createdAt,
         comment.updatedAt,
-        likesCount,
+        username,
+        likesCount ?? 0,
         isLiked
     );
 }

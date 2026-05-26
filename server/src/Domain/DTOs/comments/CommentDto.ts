@@ -10,6 +10,7 @@ export class CommentDto {
         public replies: CommentDto[] = [],
         public createdAt: Date = new Date(),
         public updatedAt: Date = new Date(),
+        public authorUsername: string = '',
         public likesCount: number = 0,
         public isLiked: boolean = false
     ) {}

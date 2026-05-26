@@ -62,7 +62,7 @@ export default function CommentItem({
 
     const authorUsername =
         comment.username ??
-        comment.author?.username ??
+        comment.authorUsername ??
         `user_${authorId}`;
 
     const isOwner = isAuthenticated && currentUserId === authorId;
