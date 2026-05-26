@@ -5,17 +5,18 @@ import { useEKG } from '../../hooks/other/useEKG';
 import { useParticles } from '../../hooks/other/useParticles';
 import { UserProfileAPIService } from '../../api_services/users/UserProfileAPIService';
 import type { UserProfileDto } from '../../models/users/UserDto';
+import type { PostDto } from '../../models/posts/PostsDto';
+import type { CommentDto } from '../../models/comments/CommentDTO';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import FollowersList from '../../components/profile/FollowersList';
 import FollowingList from '../../components/profile/FollowingList';
-import { validateRegister, type RegisterForm } from '../../utils/authValidations';
-import { ArrowLeft, Edit2, Save, X } from 'lucide-react';
+import { ArrowLeft, Edit2, Save, X, FileText, MessageSquare } from 'lucide-react';
 
 export default function ProfilePage() {
     const { userId } = useParams<{ userId: string }>();
     const { user, token } = useAuth();
     const navigate = useNavigate();
-    
+
     const [profile, setProfile] = useState<UserProfileDto | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,14 @@ export default function ProfilePage() {
     const [saving, setSaving] = useState(false);
     const [showFollowersList, setShowFollowersList] = useState(false);
     const [showFollowingList, setShowFollowingList] = useState(false);
-    
+
+    // ─── Novo: postovi i komentari ────────────────────────────────────────────
+    const [activeTab, setActiveTab] = useState<'posts' | 'comments'>('posts');
+    const [userPosts, setUserPosts] = useState<PostDto[]>([]);
+    const [userComments, setUserComments] = useState<CommentDto[]>([]);
+    const [contentLoading, setContentLoading] = useState(false);
+    // ─────────────────────────────────────────────────────────────────────────
+
     const isOwnProfile = !userId || (user && user.id === parseInt(userId));
     const targetUserId = userId ? parseInt(userId) : user?.id;
 
@@ -80,7 +88,7 @@ export default function ProfilePage() {
 
         setTimeout(resize, 100);
         resize();
-        
+
         window.addEventListener('resize', resize);
 
         const ekgObserver = new ResizeObserver(resize);
@@ -128,27 +136,27 @@ export default function ProfilePage() {
                 setLoading(false);
                 return;
             }
-            
+
             setLoading(true);
             setError(null);
-            
+
             const res = isOwnProfile && token
                 ? await UserProfileAPIService.getMyProfile()
                 : await UserProfileAPIService.getUserProfile(targetUserId);
-            
+
             if (!ignore) {
                 if (res.success && res.data) {
                     setProfile(res.data);
                     setEditForm({
-                    firstName: res.data.firstName || '',
-                    lastName: res.data.lastName || '',
-                    email: res.data.email || '',
-                    bio: res.data.bio || '',
-                    profileImage: res.data.profileImage || null,
-                    username: res.data.username || '',
-                    password: '',
-                    confirmPassword: ''
-                });
+                        firstName: res.data.firstName || '',
+                        lastName: res.data.lastName || '',
+                        email: res.data.email || '',
+                        bio: res.data.bio || '',
+                        profileImage: res.data.profileImage || null,
+                        username: res.data.username || '',
+                        password: '',
+                        confirmPassword: ''
+                    });
                 } else {
                     setError(res.message || 'Failed to load profile');
                 }
@@ -163,13 +171,36 @@ export default function ProfilePage() {
         };
     }, [targetUserId, isOwnProfile, token]);
 
+    // ─── Novo: učitaj postove i komentare kad se zna targetUserId ─────────────
+    useEffect(() => {
+        if (!targetUserId) return;
+
+        let ignore = false;
+        setContentLoading(true);
+
+        Promise.all([
+            UserProfileAPIService.getUserPosts(targetUserId),
+            UserProfileAPIService.getUserComments(targetUserId),
+        ]).then(([postsRes, commentsRes]) => {
+            if (ignore) return;
+            if (postsRes.success && postsRes.data) setUserPosts(postsRes.data);
+            if (commentsRes.success && commentsRes.data) setUserComments(commentsRes.data);
+            setContentLoading(false);
+        });
+
+        return () => {
+            ignore = true;
+        };
+    }, [targetUserId]);
+    // ─────────────────────────────────────────────────────────────────────────
+
     const handleFollow = async () => {
         if (!token || !profile) return;
-        
+
         const res = profile.isFollowing
             ? await UserProfileAPIService.unfollowUser(token, profile.id)
             : await UserProfileAPIService.followUser(token, profile.id);
-        
+
         if (res.success) {
             setProfile(prev => prev ? {
                 ...prev,
@@ -192,32 +223,32 @@ export default function ProfilePage() {
         setIsEditing(false);
         if (profile) {
             setEditForm({
-            firstName: profile.firstName || '',
-            lastName: profile.lastName || '',
-            email: profile.email || '',
-            bio: profile.bio || '',
-            profileImage: profile.profileImage || null,
-            username: profile.username || '',
-            password: '',
-            confirmPassword: ''
-        });
+                firstName: profile.firstName || '',
+                lastName: profile.lastName || '',
+                email: profile.email || '',
+                bio: profile.bio || '',
+                profileImage: profile.profileImage || null,
+                username: profile.username || '',
+                password: '',
+                confirmPassword: ''
+            });
         }
     };
 
     const handleSaveEdit = async () => {
         if (!token || !profile) return;
-        
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (editForm.email && !emailRegex.test(editForm.email)) {
             alert('Please enter a valid email address');
             return;
         }
-        
+
         if (editForm.username && editForm.username.length < 3) {
             alert('Username must be at least 3 characters');
             return;
         }
-        
+
         setSaving(true);
         try {
             const res = await UserProfileAPIService.updateProfile(token, {
@@ -229,7 +260,7 @@ export default function ProfilePage() {
                 username: editForm.username,
                 password: editForm.password ? editForm.password : undefined
             });
-            
+
             if (res.success && res.data) {
                 setProfile(prev => prev ? {
                     ...prev,
@@ -333,27 +364,25 @@ export default function ProfilePage() {
                 style={{ zIndex: 1, height: '100%' }}
             />
 
-            {/* MAIN CONTENT */}
-            <div ref={ekgWrapRef} className="relative z-10">
-                <div className="max-w-4xl mx-auto px-4 py-8">
-                    {/* Back Button */}
-                    <div className="mb-4 flex items-center justify-between">
+            <div ref={ekgWrapRef} className="relative min-h-screen" style={{ zIndex: 2 }}>
+                <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
+
+                    {/* Back button + Edit */}
+                    <div className="flex items-center justify-between mb-6">
                         <button
                             onClick={goBack}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-muted-ghost hover:text-white hover:bg-white/5 transition-all duration-150"
+                            className="flex items-center gap-2 text-sm text-muted hover:text-white transition-colors"
                         >
-                            <ArrowLeft size={18} strokeWidth={1.5} />
-                            <span className="text-sm">Back</span>
+                            <ArrowLeft size={16} />
+                            Back
                         </button>
-                        
-                        {/* Edit Button - only for own profile */}
                         {isOwnProfile && !isEditing && (
                             <button
                                 onClick={handleEditClick}
-                                className="flex items-center gap-2 px-3 py-2 rounded-lg text-pulse hover:text-pulse-80 hover:bg-pulse/10 transition-all duration-150"
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-pulse/10 text-pulse rounded-lg hover:bg-pulse/20 transition-colors"
                             >
-                                <Edit2 size={16} strokeWidth={1.5} />
-                                <span className="text-sm">Edit Profile</span>
+                                <Edit2 size={14} />
+                                Edit Profile
                             </button>
                         )}
                     </div>
@@ -394,126 +423,281 @@ export default function ProfilePage() {
                                 </div>
                             )}
                         </div>
-                        
+
                         <div className="space-y-4">
-    <div>
-        <h3 className="text-sm text-muted-ghost mb-1">Role</h3>
-        <p className="text-white capitalize">{profile.role}</p>
-    </div>
+                            <div>
+                                <h3 className="text-sm text-muted-ghost mb-1">Role</h3>
+                                <p className="text-white capitalize">{profile.role}</p>
+                            </div>
 
-    <div>
-        <h3 className="text-sm text-muted-ghost mb-1">Username</h3>
-        {isEditing && isOwnProfile ? (
-            <input
-                type="text"
-                name="username"
-                value={editForm.username}
-                onChange={handleInputChange}
-                placeholder="Username"
-                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-            />
-        ) : (
-            <p className="text-white">@{profile.username}</p>
-        )}
-    </div>
+                            <div>
+                                <h3 className="text-sm text-muted-ghost mb-1">Username</h3>
+                                {isEditing && isOwnProfile ? (
+                                    <input
+                                        type="text"
+                                        name="username"
+                                        value={editForm.username}
+                                        onChange={handleInputChange}
+                                        placeholder="Username"
+                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+                                    />
+                                ) : (
+                                    <p className="text-white">@{profile.username}</p>
+                                )}
+                            </div>
 
-    <div>
-        <h3 className="text-sm text-muted-ghost mb-1">First Name</h3>
-        {isEditing && isOwnProfile ? (
-            <input
-                type="text"
-                name="firstName"
-                value={editForm.firstName}
-                onChange={handleInputChange}
-                placeholder="First name"
-                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-            />
-        ) : (
-            <p className="text-white">{profile.firstName || 'Not set'}</p>
-        )}
-    </div>
+                            <div>
+                                <h3 className="text-sm text-muted-ghost mb-1">First Name</h3>
+                                {isEditing && isOwnProfile ? (
+                                    <input
+                                        type="text"
+                                        name="firstName"
+                                        value={editForm.firstName}
+                                        onChange={handleInputChange}
+                                        placeholder="First name"
+                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+                                    />
+                                ) : (
+                                    <p className="text-white">{profile.firstName || 'Not set'}</p>
+                                )}
+                            </div>
 
-    <div>
-        <h3 className="text-sm text-muted-ghost mb-1">Last Name</h3>
-        {isEditing && isOwnProfile ? (
-            <input
-                type="text"
-                name="lastName"
-                value={editForm.lastName}
-                onChange={handleInputChange}
-                placeholder="Last name"
-                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-            />
-        ) : (
-            <p className="text-white">{profile.lastName || 'Not set'}</p>
-        )}
-    </div>
+                            <div>
+                                <h3 className="text-sm text-muted-ghost mb-1">Last Name</h3>
+                                {isEditing && isOwnProfile ? (
+                                    <input
+                                        type="text"
+                                        name="lastName"
+                                        value={editForm.lastName}
+                                        onChange={handleInputChange}
+                                        placeholder="Last name"
+                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+                                    />
+                                ) : (
+                                    <p className="text-white">{profile.lastName || 'Not set'}</p>
+                                )}
+                            </div>
 
-    <div>
-        <h3 className="text-sm text-muted-ghost mb-1">Email</h3>
-        {isEditing && isOwnProfile ? (
-            <input
-                type="email"
-                name="email"
-                value={editForm.email}
-                onChange={handleInputChange}
-                placeholder="Email address"
-                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-            />
-        ) : (
-            <p className="text-white">{isOwnProfile ? profile.email : '🔒 Hidden'}</p>
-        )}
-    </div>
+                            <div>
+                                <h3 className="text-sm text-muted-ghost mb-1">Email</h3>
+                                {isEditing && isOwnProfile ? (
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        value={editForm.email}
+                                        onChange={handleInputChange}
+                                        placeholder="Email address"
+                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+                                    />
+                                ) : (
+                                    <p className="text-white">{isOwnProfile ? profile.email : '🔒 Hidden'}</p>
+                                )}
+                            </div>
 
-    <div>
-        <h3 className="text-sm text-muted-ghost mb-1">Bio</h3>
-        {isEditing && isOwnProfile ? (
-            <textarea
-                name="bio"
-                value={editForm.bio || ''}
-                onChange={handleInputChange}
-                placeholder="Write something about yourself..."
-                rows={4}
-                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse resize-none"
-            />
-        ) : (
-            <p className="text-muted leading-relaxed">{profile.bio || 'No bio yet'}</p>
-        )}
-    </div>
+                            <div>
+                                <h3 className="text-sm text-muted-ghost mb-1">Bio</h3>
+                                {isEditing && isOwnProfile ? (
+                                    <textarea
+                                        name="bio"
+                                        value={editForm.bio || ''}
+                                        onChange={handleInputChange}
+                                        placeholder="Write something about yourself..."
+                                        rows={4}
+                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse resize-none"
+                                    />
+                                ) : (
+                                    <p className="text-muted leading-relaxed">{profile.bio || 'No bio yet'}</p>
+                                )}
+                            </div>
 
-    <div>
-        <h3 className="text-sm text-muted-ghost mb-1">Password</h3>
-        {isEditing && isOwnProfile ? (
-            <input
-                type="password"
-                name="password"
-                value={editForm.password}
-                onChange={handleInputChange}
-                placeholder="Leave blank to keep current"
-                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-            />
-        ) : (
-            <p className="text-white">••••••••</p>
-        )}
-    </div>
+                            <div>
+                                <h3 className="text-sm text-muted-ghost mb-1">Password</h3>
+                                {isEditing && isOwnProfile ? (
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        value={editForm.password}
+                                        onChange={handleInputChange}
+                                        placeholder="Leave blank to keep current"
+                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+                                    />
+                                ) : (
+                                    <p className="text-white">••••••••</p>
+                                )}
+                            </div>
 
-    <div>
-        <h3 className="text-sm text-muted-ghost mb-1">Confirm New Password</h3>
-        {isEditing && isOwnProfile ? (
-            <input
-                type="password"
-                name="confirmPassword"
-                value={editForm.confirmPassword}
-                onChange={handleInputChange}
-                placeholder="Repeat new password"
-                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-            />
-        ) : (
-            <p className="text-white">••••••••</p>
-        )}
-    </div>
-</div>
+                            <div>
+                                <h3 className="text-sm text-muted-ghost mb-1">Confirm New Password</h3>
+                                {isEditing && isOwnProfile ? (
+                                    <input
+                                        type="password"
+                                        name="confirmPassword"
+                                        value={editForm.confirmPassword}
+                                        onChange={handleInputChange}
+                                        placeholder="Repeat new password"
+                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+                                    />
+                                ) : (
+                                    <p className="text-white">••••••••</p>
+                                )}
+                            </div>
+                        </div>
                     </div>
+
+                    {/* ─── Novo: Postovi i Komentari tabovi ─────────────────────────────── */}
+                    <div className="mt-6 rounded-xl overflow-hidden" style={{
+                        background: 'linear-gradient(135deg, #0a0a14 0%, #08080e 100%)',
+                        border: '1px solid rgba(108, 99, 255, 0.2)',
+                    }}>
+                        {/* Tab header */}
+                        <div className="flex border-b border-border-subtle">
+                            <button
+                                onClick={() => setActiveTab('posts')}
+                                className={`flex items-center gap-2 px-6 py-3.5 text-sm font-medium transition-colors relative ${
+                                    activeTab === 'posts'
+                                        ? 'text-pulse'
+                                        : 'text-muted hover:text-white'
+                                }`}
+                            >
+                                <FileText size={14} />
+                                Posts
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                    activeTab === 'posts' ? 'bg-pulse/20 text-pulse' : 'bg-surface-hover text-muted-ghost'
+                                }`}>
+                                    {userPosts.length}
+                                </span>
+                                {activeTab === 'posts' && (
+                                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-pulse" />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('comments')}
+                                className={`flex items-center gap-2 px-6 py-3.5 text-sm font-medium transition-colors relative ${
+                                    activeTab === 'comments'
+                                        ? 'text-pulse'
+                                        : 'text-muted hover:text-white'
+                                }`}
+                            >
+                                <MessageSquare size={14} />
+                                Comments
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                    activeTab === 'comments' ? 'bg-pulse/20 text-pulse' : 'bg-surface-hover text-muted-ghost'
+                                }`}>
+                                    {userComments.length}
+                                </span>
+                                {activeTab === 'comments' && (
+                                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-pulse" />
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Tab content */}
+                        <div className="p-4">
+                            {contentLoading ? (
+                                <div className="space-y-3">
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="h-20 bg-surface-hover rounded-lg animate-pulse" />
+                                    ))}
+                                </div>
+                            ) : activeTab === 'posts' ? (
+                                userPosts.length === 0 ? (
+                                    <div className="text-center py-10">
+                                        <FileText size={32} className="mx-auto text-muted-ghost mb-2 opacity-40" />
+                                        <p className="text-muted-ghost text-sm">No posts yet</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {userPosts.map(post => (
+                                            <button
+                                                key={post.id}
+                                                onClick={() => navigate(`/posts/${post.id}`)}
+                                                className="w-full text-left rounded-lg p-4 transition-all hover:border-pulse/40"
+                                                style={{
+                                                    background: 'rgba(255,255,255,0.03)',
+                                                    border: '1px solid rgba(108, 99, 255, 0.15)',
+                                                }}
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="text-white text-sm font-medium truncate mb-1">
+                                                            {post.title}
+                                                        </h3>
+                                                        <p className="text-muted-ghost text-xs line-clamp-2 leading-relaxed">
+                                                            {post.content}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-4 mt-3">
+                                                    <span className="text-xs text-muted-ghost">
+                                                        {post.communityName && (
+                                                            <span className="text-pulse/70">r/{post.communityName} · </span>
+                                                        )}
+                                                        {new Date(post.createdAt).toLocaleDateString()}
+                                                    </span>
+                                                    <span className="text-xs text-muted-ghost">
+                                                        ♥ {post.likeCount}
+                                                    </span>
+                                                    <span className="text-xs text-muted-ghost">
+                                                        💬 {post.commentCount}
+                                                    </span>
+                                                    {post.tags && post.tags.length > 0 && (
+                                                        <div className="flex gap-1 flex-wrap">
+                                                            {post.tags.slice(0, 3).map(tag => (
+                                                                <span
+                                                                    key={tag}
+                                                                    className="text-xs px-1.5 py-0.5 rounded bg-pulse/10 text-pulse/70"
+                                                                >
+                                                                    {tag}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )
+                            ) : (
+                                userComments.length === 0 ? (
+                                    <div className="text-center py-10">
+                                        <MessageSquare size={32} className="mx-auto text-muted-ghost mb-2 opacity-40" />
+                                        <p className="text-muted-ghost text-sm">No comments yet</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {userComments.map(comment => (
+                                            <button
+                                                key={comment.id}
+                                                onClick={() => navigate(`/posts/${comment.postId}`)}
+                                                className="w-full text-left rounded-lg p-4 transition-all hover:border-pulse/40"
+                                                style={{
+                                                    background: 'rgba(255,255,255,0.03)',
+                                                    border: '1px solid rgba(108, 99, 255, 0.15)',
+                                                }}
+                                            >
+                                                <p className="text-muted text-sm leading-relaxed line-clamp-3">
+                                                    {comment.content}
+                                                </p>
+                                                <div className="flex items-center gap-4 mt-3">
+                                                    <span className="text-xs text-muted-ghost">
+                                                        {new Date(comment.createdAt).toLocaleDateString()}
+                                                    </span>
+                                                    <span className="text-xs text-muted-ghost">
+                                                        ♥ {comment.likesCount}
+                                                    </span>
+                                                    <span className="text-xs text-pulse/60 text-xs">
+                                                        → view post
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )
+                            )}
+                        </div>
+                    </div>
+                    {/* ─────────────────────────────────────────────────────────────────── */}
+
                 </div>
             </div>
 
@@ -524,7 +708,6 @@ export default function ProfilePage() {
                 onClose={() => setShowFollowersList(false)}
                 onFollowerRemoved={() => {
                     if (targetUserId) {
-                        // Reload profile to update follower count
                         const loadProfile = async () => {
                             const res = await UserProfileAPIService.getUserProfile(targetUserId);
                             if (res.success && res.data) {
@@ -543,7 +726,6 @@ export default function ProfilePage() {
                 onClose={() => setShowFollowingList(false)}
                 onFollowingChanged={() => {
                     if (targetUserId) {
-                        // Reload profile to update following count
                         const loadProfile = async () => {
                             const res = await UserProfileAPIService.getUserProfile(targetUserId);
                             if (res.success && res.data) {

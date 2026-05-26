@@ -21,6 +21,7 @@ import {
     FindRepliesByCommentIdInput,
     FindRepliesPaginatedInput,
     GetReplyCountInput,
+    GetCommentsByUserInput,
 } from '../../Domain/types/inputs/CommentInputs';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 
@@ -54,7 +55,8 @@ export class CommentService implements ICommentService {
         }
 
         const comment = await this.commentReadWriteRepository.create(
-            new Comment(0, input.postId, input.authorId, input.parentId ?? null, 0, input.content, false, false, new Date(), new Date()));
+            new Comment(0, input.postId, input.authorId, input.parentId ?? null, 0, input.content, false, false, new Date(), new Date())
+        );
 
         if (!comment) {
             return { success: false, message: 'Failed to create comment', errorCode: ErrorCode.INTERNAL_ERROR };
@@ -65,24 +67,33 @@ export class CommentService implements ICommentService {
     }
 
     async getCommentsByPost(input: GetCommentsByPostInput): Promise<ServiceResult<CommentDto[]>> {
-    const post = await this.postRepository.getById(input.postId);
-    if (!post) {
-        return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
+        const post = await this.postRepository.getById(input.postId);
+        if (!post) {
+            return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
+        }
+
+        const comments = await this.commentReadWriteRepository.getByPost(input.postId);
+        const dtos = await Promise.all(
+            comments.map(c => this.buildCommentDto(c, input.currentUserId ?? undefined))
+        );
+
+        const rootComments = dtos.filter(c => c.parentId === null);
+        const replies = dtos.filter(c => c.parentId !== null);
+        for (const root of rootComments) {
+            root.replies = replies.filter(r => r.parentId === root.id);
+        }
+
+        return { success: true, data: rootComments };
     }
 
-    const comments = await this.commentReadWriteRepository.getByPost(input.postId);
-    const dtos = await Promise.all(
-        comments.map(c => this.buildCommentDto(c, input.currentUserId ?? undefined)) // ← proslijedi
-    );
-
-    const rootComments = dtos.filter(c => c.parentId === null);
-    const replies = dtos.filter(c => c.parentId !== null);
-    for (const root of rootComments) {
-        root.replies = replies.filter(r => r.parentId === root.id);
+    async getCommentsByUser(input: GetCommentsByUserInput): Promise<ServiceResult<CommentDto[]>> {
+        const comments = await this.commentReadWriteRepository.getByAuthor(input.userId);
+        const visibleComments = comments.filter(c => !c.isDeleted);
+        const dtos = await Promise.all(
+            visibleComments.map(c => this.buildCommentDto(c, input.requesterId ?? undefined))
+        );
+        return { success: true, data: dtos };
     }
-
-    return { success: true, data: rootComments };
-}
 
     async updateComment(input: UpdateCommentInput): Promise<ServiceResult<CommentDto>> {
         const comment = await this.commentReadWriteRepository.getById(input.commentId);
@@ -202,17 +213,17 @@ export class CommentService implements ICommentService {
     }
 
     async findRepliesByCommentId(input: FindRepliesByCommentIdInput): Promise<ServiceResult<CommentDto[]>> {
-    const comment = await this.commentReadWriteRepository.getById(input.commentId);
-    if (!comment) {
-        return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
-    }
+        const comment = await this.commentReadWriteRepository.getById(input.commentId);
+        if (!comment) {
+            return { success: false, message: 'Comment not found', errorCode: ErrorCode.NOT_FOUND };
+        }
 
-    const replies = await this.commentQueryRepository.findRepliesByCommentId(input.commentId);
-    const dtos = await Promise.all(
-        replies.map(r => this.buildCommentDto(r, input.currentUserId ?? undefined))
-    );
-    return { success: true, data: dtos };
-}
+        const replies = await this.commentQueryRepository.findRepliesByCommentId(input.commentId);
+        const dtos = await Promise.all(
+            replies.map(r => this.buildCommentDto(r, input.currentUserId ?? undefined))
+        );
+        return { success: true, data: dtos };
+    }
 
     async findRepliesPaginated(input: FindRepliesPaginatedInput): Promise<ServiceResult<CommentDto[]>> {
         const comment = await this.commentReadWriteRepository.getById(input.commentId);
@@ -240,32 +251,32 @@ export class CommentService implements ICommentService {
     }
 
     private async buildCommentDto(comment: Comment, currentUserId?: number): Promise<CommentDto> {
-    const [user, likesCount] = await Promise.all([
-        this.userRepository.getById(comment.authorId),
-        this.commentLikeRepository.getLikeCount(comment.id),
-    ]);
+        const [user, likesCount] = await Promise.all([
+            this.userRepository.getById(comment.authorId),
+            this.commentLikeRepository.getLikeCount(comment.id),
+        ]);
 
-    const username = user?.username;
+        const username = user?.username;
 
-    let isLiked = false;
-    if (currentUserId) {
-        isLiked = await this.commentLikeRepository.hasLiked(currentUserId, comment.id);
+        let isLiked = false;
+        if (currentUserId) {
+            isLiked = await this.commentLikeRepository.hasLiked(currentUserId, comment.id);
+        }
+
+        return new CommentDto(
+            comment.id,
+            comment.isDeleted ? '[comment deleted]' : comment.content,
+            comment.postId,
+            comment.authorId,
+            comment.parentId,
+            comment.isDeleted,
+            comment.isFlagged,
+            [],
+            comment.createdAt,
+            comment.updatedAt,
+            username,
+            likesCount ?? 0,
+            isLiked
+        );
     }
-
-    return new CommentDto(
-        comment.id,
-        comment.isDeleted ? '[comment deleted]' : comment.content,
-        comment.postId,
-        comment.authorId,
-        comment.parentId,
-        comment.isDeleted,
-        comment.isFlagged,
-        [],
-        comment.createdAt,
-        comment.updatedAt,
-        username,
-        likesCount ?? 0,
-        isLiked
-    );
-}
 }

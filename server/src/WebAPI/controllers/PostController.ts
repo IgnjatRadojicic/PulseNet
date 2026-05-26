@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
+import { authenticate, optionalAuthenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { validateCreatePost } from '../validators/PostValidator';
 import { IPostService } from '../../Domain/services/post/IPostService';
 import { sendServiceResult } from '../helpers/responseHelper';
@@ -26,7 +26,24 @@ export class PostController {
         this.router.delete('/posts/:id/like', authenticate, this.removeLike.bind(this));
         this.router.post('/posts/:id/tags', authenticate, this.addTag.bind(this));
         this.router.delete('/posts/:id/tags/:tagId', authenticate, this.removeTag.bind(this));
+        this.router.get('/posts/user/:userId', optionalAuthenticate, this.getPostsByUser.bind(this));
     }
+
+    private async getPostsByUser(req: Request, res: Response): Promise<void> {
+        try {
+            const userId = parseInt(String(req.params.userId));
+            if (isNaN(userId)) {
+                res.status(400).json({ success: false, message: 'Invalid user ID' });
+                return;
+            }
+            const requesterId = req.user?.id ?? null;
+            const result = await this.postService.getPostsByUser({ userId, requesterId });
+            sendServiceResult(res, result);
+        } catch {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    }
+
 
     private async getPublicPosts(req: Request, res: Response): Promise<void> {
         try {

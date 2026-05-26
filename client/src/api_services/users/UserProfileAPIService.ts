@@ -1,7 +1,9 @@
 // src/api_services/users/UserProfileAPIService.ts
 import { apiGet, apiPost, apiPut, apiDelete } from '../../helpers/api';
 import type { ApiResponse } from '../../helpers/api';
-import type { UserProfileDto, UserActivityDto, UpdateProfileDto, UserCommunityDto, UserDto} from '../../models/users/UserDto';
+import type { CommentDto } from '../../models/comments/CommentDTO';
+import type { UserProfileDto, UserActivityDto, UpdateProfileDto, UserCommunityDto, UserDto } from '../../models/users/UserDto';
+import type { PostDto } from '../../models/posts/PostsDto';
 
 export const UserProfileAPIService = {
     getUserProfile: (userId: number): Promise<ApiResponse<UserProfileDto>> =>
@@ -27,10 +29,16 @@ export const UserProfileAPIService = {
 
     removeFollower: (followerId: number, _token: string): Promise<ApiResponse<boolean>> =>
         apiDelete<boolean>(`users/followers/${followerId}`),
-        
+
     getUserCommunities: (): Promise<ApiResponse<UserCommunityDto[]>> =>
         apiGet<UserCommunityDto[]>(`users/me/communities`),
 
     getUserActivities: (_token: string, limit: number = 10): Promise<ApiResponse<UserActivityDto[]>> =>
         apiGet<UserActivityDto[]>(`users/me/activities?limit=${limit}`),
+
+    getUserPosts: (userId: number): Promise<ApiResponse<PostDto[]>> =>
+        apiGet<PostDto[]>(`posts/user/${userId}`),
+
+    getUserComments: (userId: number): Promise<ApiResponse<CommentDto[]>> =>
+        apiGet<CommentDto[]>(`comments/user/${userId}`),
 };

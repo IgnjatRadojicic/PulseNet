@@ -57,3 +57,8 @@ export type FindRepliesPaginatedInput = {
 export type GetReplyCountInput = {
     commentId: number;
 };
+
+export interface GetCommentsByUserInput {
+    userId: number;
+    requesterId?: number | null;
+}

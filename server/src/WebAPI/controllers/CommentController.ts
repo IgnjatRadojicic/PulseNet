@@ -22,6 +22,22 @@ export class CommentController {
         this.router.post('/comments/:id/like', authenticate, this.likeComment.bind(this));
         this.router.delete('/comments/:id/like', authenticate, this.unlikeComment.bind(this));
         this.router.get('/comments/:commentId/replies', optionalAuthenticate, this.findRepliesByCommentId.bind(this));
+        this.router.get('/comments/user/:userId', optionalAuthenticate, this.getCommentsByUser.bind(this));
+    }
+
+    private async getCommentsByUser(req: Request, res: Response): Promise<void> {
+        try {
+            const userId = parseInt(String(req.params.userId));
+            if (isNaN(userId)) {
+                res.status(400).json({ success: false, message: 'Invalid user ID' });
+                return;
+            }
+            const requesterId = req.user?.id ?? null;
+            const result = await this.commentService.getCommentsByUser({ userId, requesterId });
+            sendServiceResult(res, result);
+        } catch {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
     }
 
     private async getCommentsByPost(req: Request, res: Response): Promise<void> {

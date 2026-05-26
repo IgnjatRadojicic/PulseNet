@@ -26,42 +26,41 @@ export class UserService implements IUserService {
     private readonly saltRounds: number = parseInt(process.env.SALT_ROUNDS || '10', 10);
 
     public constructor(
-    private userRepository: IUserRepository,
-    private userFollowRepository: IUserFollowRepository,
-    private auditService: IAuditService,
-    private postRepository: IPostRepository,
-    private commentRepository: ICommentReadWriteRepository
-) {}
-
+        private userRepository: IUserRepository,
+        private userFollowRepository: IUserFollowRepository,
+        private auditService: IAuditService,
+        private postRepository: IPostRepository,
+        private commentRepository: ICommentReadWriteRepository
+    ) {}
 
     async getAllUsers(): Promise<ServiceResult<UserDto[]>> {
         const users = await this.userRepository.getAll();
-        return {success: true, data: users.map(u => this.toDto(u))};
+        return { success: true, data: users.map(u => this.toDto(u)) };
     }
 
     async getUserById(input: GetUserInput): Promise<ServiceResult<UserDto>> {
         const user = await this.userRepository.getById(input.userId);
         if (!user) {
-            return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };   
+            return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };
         }
-        return {success: true, data: this.toDto(user)};
+        return { success: true, data: this.toDto(user) };
     }
 
     async updateProfile(input: UpdateProfileInput): Promise<ServiceResult<UserDto>> {
         const existing = await this.userRepository.getById(input.userId);
 
-        if(!existing) {
-            return {success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND};
+        if (!existing) {
+            return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };
         }
 
         const byUsername = await this.userRepository.getByUsername(input.username);
         if (byUsername && byUsername.id !== input.userId) {
-            return { success: false, message: 'Username is already taken', errorCode: ErrorCode.ALREADY_EXISTS };            
+            return { success: false, message: 'Username is already taken', errorCode: ErrorCode.ALREADY_EXISTS };
         }
         const byEmail = await this.userRepository.getByEmail(input.email);
         if (byEmail && byEmail.id !== input.userId) {
             return { success: false, message: 'Email is already taken', errorCode: ErrorCode.ALREADY_EXISTS };
-        }        
+        }
 
         let passwordHash = existing.passwordHash;
         if (input.password) {
@@ -71,46 +70,46 @@ export class UserService implements IUserService {
         const updated = await this.userRepository.update(
             new User(input.userId, input.username, input.email, input.firstName, input.lastName, input.bio ?? null, input.profileImage ?? null, existing.role, passwordHash)
         );
- 
+
         if (!updated) {
             return { success: false, message: 'Update failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
- 
-        return { success: true, data: this.toDto(updated) };        
+
+        return { success: true, data: this.toDto(updated) };
     }
 
     async getUserProfile(userId: number, currentUserId?: number): Promise<ServiceResult<UserProfileDto>> {
-    const user = await this.userRepository.getById(userId);
-    if (!user) {
-        return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };
+        const user = await this.userRepository.getById(userId);
+        if (!user) {
+            return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };
+        }
+
+        const [posts, comments, followerCount, followingCount] = await Promise.all([
+            this.postRepository.getByAuthorId(userId),
+            this.commentRepository.getByAuthor(userId),
+            this.userFollowRepository.getFollowerCount(userId),
+            this.userFollowRepository.getFollowingCount(userId),
+        ]);
+
+        let isFollowing = false;
+        if (currentUserId && currentUserId !== userId) {
+            isFollowing = await this.userFollowRepository.isFollowing(currentUserId, userId);
+        }
+
+        const profileDto = new UserProfileDto(
+            user.id, user.username, user.email, user.firstName, user.lastName,
+            user.bio, user.profileImage, user.role, new Date(),
+            {
+                postCount: posts.length,
+                commentCount: comments.length,
+                followerCount: followerCount ?? 0,
+                followingCount: followingCount ?? 0,
+            },
+            isFollowing
+        );
+
+        return { success: true, data: profileDto };
     }
-
-    const [posts, comments, followerCount, followingCount] = await Promise.all([
-        this.postRepository.getByAuthorId(userId),
-        this.commentRepository.getByAuthor(userId),
-        this.userFollowRepository.getFollowerCount(userId),
-        this.userFollowRepository.getFollowingCount(userId),
-    ]);
-
-    let isFollowing = false;
-    if (currentUserId && currentUserId !== userId) {
-        isFollowing = await this.userFollowRepository.isFollowing(currentUserId, userId);
-    }
-
-    const profileDto = new UserProfileDto(
-        user.id, user.username, user.email, user.firstName, user.lastName,
-        user.bio, user.profileImage, user.role, new Date(),
-        {
-            postCount: posts.length,
-            commentCount: comments.length,
-            followerCount: followerCount ?? 0,
-            followingCount: followingCount ?? 0,
-        },
-        isFollowing
-    );
-
-    return { success: true, data: profileDto };
-}
 
     async updateRole(input: UpdateRoleInput): Promise<ServiceResult<boolean>> {
         const existing = await this.userRepository.getById(input.userId);
@@ -131,18 +130,16 @@ export class UserService implements IUserService {
             entityId: input.userId,
             details: JSON.stringify({ oldRole, newRole: input.role }),
         });
- 
-        return { success: true, data: true };        
- 
+
+        return { success: true, data: true };
     }
 
     async searchUsers(input: SearchUsersInput): Promise<ServiceResult<UserDto[]>> {
         const users = await this.userRepository.searchByUsername(input.query);
-        return { success: true, data: users.map(u => this.toDto(u)) };        
+        return { success: true, data: users.map(u => this.toDto(u)) };
     }
 
-     async followUser(input: FollowUserInput): Promise<ServiceResult<boolean>> {
-
+    async followUser(input: FollowUserInput): Promise<ServiceResult<boolean>> {
         if (input.followerId === input.followingId) {
             return { success: false, message: 'You cannot follow yourself', errorCode: ErrorCode.VALIDATION_ERROR };
         }
@@ -162,7 +159,7 @@ export class UserService implements IUserService {
     }
 
     async unfollowUser(input: UnfollowUserInput): Promise<ServiceResult<boolean>> {
-        const isFollowing = await this.userFollowRepository.isFollowing(input.followerId, input.followingId); 
+        const isFollowing = await this.userFollowRepository.isFollowing(input.followerId, input.followingId);
         if (!isFollowing) {
             return { success: false, message: 'You are not following this user', errorCode: ErrorCode.NOT_FOUND };
         }
@@ -170,7 +167,7 @@ export class UserService implements IUserService {
         if (!result) {
             return { success: false, message: 'Unfollow failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
-        return { success: true, data: true };        
+        return { success: true, data: true };
     }
 
     async removeFollower(input: RemoveFollowerInput): Promise<ServiceResult<boolean>> {
@@ -187,17 +184,17 @@ export class UserService implements IUserService {
 
     async getFollowers(input: GetFollowersInput): Promise<ServiceResult<UserDto[]>> {
         const ids = await this.userFollowRepository.getFollowerIds(input.userId);
-        if (ids.length === 0) return {success: true, data: []};
+        if (ids.length === 0) return { success: true, data: [] };
         const users = await this.userRepository.getByIds(ids);
-        return { success: true, data: users.map(u => this.toDto(u)) };        
+        return { success: true, data: users.map(u => this.toDto(u)) };
     }
 
-     async getFollowing(input: GetFollowingInput): Promise<ServiceResult<UserDto[]>> {
+    async getFollowing(input: GetFollowingInput): Promise<ServiceResult<UserDto[]>> {
         const ids = await this.userFollowRepository.getFollowingIds(input.userId);
         if (ids.length === 0) return { success: true, data: [] };
         const users = await this.userRepository.getByIds(ids);
         return { success: true, data: users.map(u => this.toDto(u)) };
-    }   
+    }
 
     private toDto(u: User): UserDto {
         return new UserDto(u.id, u.username, u.email, u.firstName, u.lastName, u.bio, u.profileImage, u.role);

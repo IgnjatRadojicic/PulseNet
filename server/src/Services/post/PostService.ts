@@ -16,7 +16,8 @@ import { IUserFollowRepository } from '../../Domain/repositories/users/IUserFoll
 import { IPostService } from '../../Domain/services/post/IPostService';
 import { ServiceResult } from '../../Domain/types/ServiceResult';
 import * as PostInputs from '../../Domain/types/inputs/PostInputs';
-import { CommunityRole } from '../../Domain/enums/CommunityRole'
+import { CommunityRole } from '../../Domain/enums/CommunityRole';
+
 export class PostService implements IPostService {
     public constructor(
         private postRepository: IPostRepository,
@@ -26,7 +27,7 @@ export class PostService implements IPostService {
         private userRepository: IUserRepository,
         private userFollowRepository: IUserFollowRepository,
         private communityRepository: ICommunityRepository,
-        private communityMemberRepository:  ICommunityMemberRepository,
+        private communityMemberRepository: ICommunityMemberRepository,
         private tagRepository: ITagRepository
     ) {}
 
@@ -47,7 +48,7 @@ export class PostService implements IPostService {
 
         return new PostDto(
             post.id, post.title, post.content, post.mediaUrl,
-            post.communityId, community?.name?? '',
+            post.communityId, community?.name ?? '',
             post.authorId, author?.username ?? '',
             author?.profileImage ?? null,
             isLiked,
@@ -177,6 +178,12 @@ export class PostService implements IPostService {
     async getPublicPosts(input: PostInputs.GetPublicPostsInput): Promise<ServiceResult<PostDto[]>> {
         const posts = await this.postRepository.getPublicPosts(input.limit);
         const dtos = await this.buildPostDtos(posts, input.requesterId);
+        return { success: true, data: dtos };
+    }
+
+    async getPostsByUser(input: PostInputs.GetPostsByUserInput): Promise<ServiceResult<PostDto[]>> {
+        const posts = await this.postRepository.getByAuthorId(input.userId);
+        const dtos = await this.buildPostDtos(posts, input.requesterId ?? null);
         return { success: true, data: dtos };
     }
 
