@@ -29,7 +29,9 @@ export default function LandingHero() {
                     communities
                 </em>
                 <br />
-                pulse with signal
+                <span className="whitespace-nowrap">
+                    pulse with signal
+                </span>
             </h1>
             <p
                 className="text-base md:text-lg font-light leading-relaxed mb-10 md:mb-12 max-w-xl"
