@@ -13,6 +13,17 @@ export interface PaginatedResponse<T> {
     totalPages: number;
 }
 
+export interface AdminUserDto {
+    id: number;
+    username: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    bio: string | null;
+    profileImage: string | null;
+    role: string;
+}
+
 export interface DashboardStats {
     totalUsers: number;
     totalCommunities: number;
@@ -71,6 +82,7 @@ export interface IAdminAPIService {
     triggerFailover(token: string, slaveId: number): Promise<ApiResponse<{ success: boolean; message: string }>>;
 
     getAllTags(): Promise<ApiResponse<TagDto[]>>;
+    updateTag(token: string, id: number, name: string): Promise<ApiResponse<TagDto>>;
     createTag(token: string, name: string): Promise<ApiResponse<TagDto>>;
     deleteTag(token: string, id: number): Promise<ApiResponse<boolean>>;
 }
