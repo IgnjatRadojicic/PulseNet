@@ -90,11 +90,11 @@ export function useEKG(
 
 
 function getResponsiveParams(W: number) {
-    const isMobile = W < 768;
+    const t = Math.min(1, Math.max(0, (W - 320) / (1200 - 320))); // 0 at 320px, 1 at 1200px
     return {
-        beatsPerWidth: isMobile ? 3 : 6,
-        glowHalfWidth: isMobile ? 70 : 140,
-        amplitude: isMobile ? 20 : 28,
-        step: isMobile ? 1 : 2,
+        beatsPerWidth: Math.round(2 + t * 4),       // 2 → 6
+        glowHalfWidth: Math.round(50 + t * 90),     // 50 → 140
+        amplitude: Math.round(14 + t * 14),          // 14 → 28
+        step: W < 768 ? 1 : 2,
     };
 }
