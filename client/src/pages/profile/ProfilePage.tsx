@@ -8,6 +8,7 @@ import type { UserProfileDto } from '../../models/users/UserDto';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import FollowersList from '../../components/profile/FollowersList';
 import FollowingList from '../../components/profile/FollowingList';
+import { validateRegister, type RegisterForm } from '../../utils/authValidations';
 import { ArrowLeft, Edit2, Save, X } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -25,7 +26,9 @@ export default function ProfilePage() {
         email: '',
         bio: '',
         profileImage: null as string | null,
-        username: ''
+        username: '',
+        password: '',
+        confirmPassword: ''
     });
     const [saving, setSaving] = useState(false);
     const [showFollowersList, setShowFollowersList] = useState(false);
@@ -137,13 +140,15 @@ export default function ProfilePage() {
                 if (res.success && res.data) {
                     setProfile(res.data);
                     setEditForm({
-                        firstName: res.data.firstName || '',
-                        lastName: res.data.lastName || '',
-                        email: res.data.email || '',
-                        bio: res.data.bio || '',
-                        profileImage: res.data.profileImage || null,
-                        username: res.data.username || ''
-                    });
+                    firstName: res.data.firstName || '',
+                    lastName: res.data.lastName || '',
+                    email: res.data.email || '',
+                    bio: res.data.bio || '',
+                    profileImage: res.data.profileImage || null,
+                    username: res.data.username || '',
+                    password: '',
+                    confirmPassword: ''
+                });
                 } else {
                     setError(res.message || 'Failed to load profile');
                 }
@@ -187,13 +192,15 @@ export default function ProfilePage() {
         setIsEditing(false);
         if (profile) {
             setEditForm({
-                firstName: profile.firstName || '',
-                lastName: profile.lastName || '',
-                email: profile.email || '',
-                bio: profile.bio || '',
-                profileImage: profile.profileImage || null,
-                username: profile.username || ''
-            });
+            firstName: profile.firstName || '',
+            lastName: profile.lastName || '',
+            email: profile.email || '',
+            bio: profile.bio || '',
+            profileImage: profile.profileImage || null,
+            username: profile.username || '',
+            password: '',
+            confirmPassword: ''
+        });
         }
     };
 
@@ -219,7 +226,8 @@ export default function ProfilePage() {
                 email: editForm.email,
                 bio: editForm.bio,
                 profileImage: editForm.profileImage,
-                username: editForm.username
+                username: editForm.username,
+                password: editForm.password ? editForm.password : undefined
             });
             
             if (res.success && res.data) {
@@ -388,98 +396,123 @@ export default function ProfilePage() {
                         </div>
                         
                         <div className="space-y-4">
-                            {/* Member since section REMOVED */}
-                            
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Role</h3>
-                                <p className="text-white capitalize">{profile.role}</p>
-                            </div>
-                            
-                            {/* Username - editable */}
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Username</h3>
-                                {isEditing && isOwnProfile ? (
-                                    <input
-                                        type="text"
-                                        name="username"
-                                        value={editForm.username}
-                                        onChange={handleInputChange}
-                                        placeholder="Username"
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-                                    />
-                                ) : (
-                                    <p className="text-white">@{profile.username}</p>
-                                )}
-                            </div>
-                            
-                            {/* First Name - editable */}
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">First Name</h3>
-                                {isEditing && isOwnProfile ? (
-                                    <input
-                                        type="text"
-                                        name="firstName"
-                                        value={editForm.firstName}
-                                        onChange={handleInputChange}
-                                        placeholder="First name"
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-                                    />
-                                ) : (
-                                    <p className="text-white">{profile.firstName || 'Not set'}</p>
-                                )}
-                            </div>
-                            
-                            {/* Last Name - editable */}
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Last Name</h3>
-                                {isEditing && isOwnProfile ? (
-                                    <input
-                                        type="text"
-                                        name="lastName"
-                                        value={editForm.lastName}
-                                        onChange={handleInputChange}
-                                        placeholder="Last name"
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-                                    />
-                                ) : (
-                                    <p className="text-white">{profile.lastName || 'Not set'}</p>
-                                )}
-                            </div>
-                            
-                            {/* Email - editable only for own profile */}
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Email</h3>
-                                {isEditing && isOwnProfile ? (
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={editForm.email}
-                                        onChange={handleInputChange}
-                                        placeholder="Email address"
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
-                                    />
-                                ) : (
-                                    <p className="text-white">{isOwnProfile ? profile.email : '🔒 Hidden'}</p>
-                                )}
-                            </div>
-                            
-                            {/* Bio - editable */}
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Bio</h3>
-                                {isEditing && isOwnProfile ? (
-                                    <textarea
-                                        name="bio"
-                                        value={editForm.bio || ''}
-                                        onChange={handleInputChange}
-                                        placeholder="Write something about yourself..."
-                                        rows={4}
-                                        className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse resize-none"
-                                    />
-                                ) : (
-                                    <p className="text-muted leading-relaxed">{profile.bio || 'No bio yet'}</p>
-                                )}
-                            </div>
-                        </div>
+    <div>
+        <h3 className="text-sm text-muted-ghost mb-1">Role</h3>
+        <p className="text-white capitalize">{profile.role}</p>
+    </div>
+
+    <div>
+        <h3 className="text-sm text-muted-ghost mb-1">Username</h3>
+        {isEditing && isOwnProfile ? (
+            <input
+                type="text"
+                name="username"
+                value={editForm.username}
+                onChange={handleInputChange}
+                placeholder="Username"
+                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+            />
+        ) : (
+            <p className="text-white">@{profile.username}</p>
+        )}
+    </div>
+
+    <div>
+        <h3 className="text-sm text-muted-ghost mb-1">First Name</h3>
+        {isEditing && isOwnProfile ? (
+            <input
+                type="text"
+                name="firstName"
+                value={editForm.firstName}
+                onChange={handleInputChange}
+                placeholder="First name"
+                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+            />
+        ) : (
+            <p className="text-white">{profile.firstName || 'Not set'}</p>
+        )}
+    </div>
+
+    <div>
+        <h3 className="text-sm text-muted-ghost mb-1">Last Name</h3>
+        {isEditing && isOwnProfile ? (
+            <input
+                type="text"
+                name="lastName"
+                value={editForm.lastName}
+                onChange={handleInputChange}
+                placeholder="Last name"
+                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+            />
+        ) : (
+            <p className="text-white">{profile.lastName || 'Not set'}</p>
+        )}
+    </div>
+
+    <div>
+        <h3 className="text-sm text-muted-ghost mb-1">Email</h3>
+        {isEditing && isOwnProfile ? (
+            <input
+                type="email"
+                name="email"
+                value={editForm.email}
+                onChange={handleInputChange}
+                placeholder="Email address"
+                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+            />
+        ) : (
+            <p className="text-white">{isOwnProfile ? profile.email : '🔒 Hidden'}</p>
+        )}
+    </div>
+
+    <div>
+        <h3 className="text-sm text-muted-ghost mb-1">Bio</h3>
+        {isEditing && isOwnProfile ? (
+            <textarea
+                name="bio"
+                value={editForm.bio || ''}
+                onChange={handleInputChange}
+                placeholder="Write something about yourself..."
+                rows={4}
+                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse resize-none"
+            />
+        ) : (
+            <p className="text-muted leading-relaxed">{profile.bio || 'No bio yet'}</p>
+        )}
+    </div>
+
+    <div>
+        <h3 className="text-sm text-muted-ghost mb-1">Password</h3>
+        {isEditing && isOwnProfile ? (
+            <input
+                type="password"
+                name="password"
+                value={editForm.password}
+                onChange={handleInputChange}
+                placeholder="Leave blank to keep current"
+                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+            />
+        ) : (
+            <p className="text-white">••••••••</p>
+        )}
+    </div>
+
+    <div>
+        <h3 className="text-sm text-muted-ghost mb-1">Confirm New Password</h3>
+        {isEditing && isOwnProfile ? (
+            <input
+                type="password"
+                name="confirmPassword"
+                value={editForm.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="Repeat new password"
+                className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
+            />
+        ) : (
+            <p className="text-white">••••••••</p>
+        )}
+    </div>
+</div>
                     </div>
                 </div>
             </div>
@@ -502,7 +535,7 @@ export default function ProfilePage() {
                     }
                 }}
                 currentUserId={user?.id}
-                token={token}
+                token={token ?? ''}
             />
             <FollowingList
                 userId={targetUserId!}
@@ -521,7 +554,7 @@ export default function ProfilePage() {
                     }
                 }}
                 currentUserId={user?.id}
-                token={token}
+                token={token ?? ''}
             />
         </div>
     );

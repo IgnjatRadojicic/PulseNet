@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { IUserService } from '../../Domain/services/users/IUserService';
-import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
+import { authenticate, optionalAuthenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { authorize } from '../../Middlewares/authorization/AuthorizeMiddleware';
 import { UserRole } from '../../Domain/enums/UserRole';
 import { validateProfileUpdate } from '../validators/UserValidator';
@@ -21,7 +21,7 @@ export class UserController {
         this.router.get('/users/search', authenticate, this.searchUsers.bind(this));
         this.router.get('/users/me', authenticate, this.getMe.bind(this));
         this.router.put('/users/me', authenticate, this.updateProfile.bind(this));
-        this.router.get('/users/:id', this.getUserById.bind(this));
+        this.router.get('/users/:id', optionalAuthenticate, this.getUserById.bind(this));
         this.router.put('/users/:id/role', authenticate, authorize(UserRole.Admin), this.updateRole.bind(this));
         this.router.get('/users/:id/followers', this.getFollowers.bind(this));
         this.router.get('/users/:id/following', this.getFollowing.bind(this));
@@ -54,7 +54,7 @@ export class UserController {
 
     private async getMe(req: Request, res: Response): Promise<void> {
         try {
-            const result = await this.userService.getUserById({ userId: req.user!.id });
+            const result = await this.userService.getUserProfile(req.user!.id, req.user!.id);
             sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
@@ -68,7 +68,8 @@ export class UserController {
                 res.status(400).json({ success: false, message: 'Invalid ID' });
                 return;
             }
-            const result = await this.userService.getUserById({ userId: id });
+            const currentUserId = req.user?.id;
+            const result = await this.userService.getUserProfile(id, currentUserId ?? 0);
             sendServiceResult(res, result);
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
@@ -77,14 +78,14 @@ export class UserController {
 
     private async updateProfile(req: Request, res: Response): Promise<void> {
         try {
-            const { username, email, firstName, lastName, bio, profileImage } = req.body;
-            const validation = validateProfileUpdate(username, email, firstName, lastName, bio);
+            const { username, email, firstName, lastName, bio, profileImage, password } = req.body;
+            const validation = validateProfileUpdate(username, email, firstName, lastName, bio, password);
             if (!validation.valid) {
                 res.status(400).json({ success: false, message: validation.message });
                 return;
             }
             const result = await this.userService.updateProfile({
-                userId: req.user!.id, username, email, firstName, lastName, bio, profileImage,
+                userId: req.user!.id, username, email, firstName, lastName, bio, profileImage, password
             });
             sendServiceResult(res, result);
         } catch {

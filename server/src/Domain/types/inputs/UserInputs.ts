@@ -6,6 +6,7 @@ export type UpdateProfileInput = {
     lastName: string;
     bio?: string;
     profileImage?: string;
+    password?: string;
 };
 
 export type UpdateRoleInput = {
@@ -29,6 +30,11 @@ export type FollowUserInput = {
 export type UnfollowUserInput = {
     followerId: number;
     followingId: number;
+};
+
+export type RemoveFollowerInput = {
+    followerId: number;
+    userId: number;
 };
 
 export type GetFollowersInput = {

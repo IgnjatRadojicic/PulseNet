@@ -54,8 +54,8 @@ export class UserRepository extends BaseRepository implements IUserRepository {
 
     async update(user: User): Promise<User | null> {
         const result = await this.executeWrite(
-            'UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ?, bio = ?, profile_image = ? WHERE id = ?',
-            [user.username, user.email, user.firstName, user.lastName, user.bio, user.profileImage, user.id]
+            'UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ?, bio = ?, profile_image = ?, password_hash = ? WHERE id = ?',
+            [user.username, user.email, user.firstName, user.lastName, user.bio, user.profileImage, user.passwordHash, user.id]
         );
         if (!result || result.affectedRows === 0) return null;
         return user;

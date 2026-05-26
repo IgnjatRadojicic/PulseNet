@@ -13,10 +13,15 @@ import {
     GetUserInput,
     FollowUserInput,
     UnfollowUserInput,
+    RemoveFollowerInput,
     GetFollowersInput,
     GetFollowingInput,
 } from '../../Domain/types/inputs/UserInputs';
+import bcrypt from 'bcryptjs';
+
 export class UserService implements IUserService {
+    private readonly saltRounds: number = parseInt(process.env.SALT_ROUNDS || '10', 10);
+
     public constructor(
         private userRepository: IUserRepository,
         private userFollowRepository: IUserFollowRepository,
@@ -53,8 +58,13 @@ export class UserService implements IUserService {
             return { success: false, message: 'Email is already taken', errorCode: ErrorCode.ALREADY_EXISTS };
         }        
 
+        let passwordHash = existing.passwordHash;
+        if (input.password) {
+            passwordHash = await bcrypt.hash(input.password, this.saltRounds);
+        }
+
         const updated = await this.userRepository.update(
-            new User(input.userId, input.username, input.email, input.firstName, input.lastName, input.bio ?? null, input.profileImage ?? null, existing.role, existing.passwordHash)
+            new User(input.userId, input.username, input.email, input.firstName, input.lastName, input.bio ?? null, input.profileImage ?? null, existing.role, passwordHash)
         );
  
         if (!updated) {
@@ -62,6 +72,19 @@ export class UserService implements IUserService {
         }
  
         return { success: true, data: this.toDto(updated) };        
+    }
+
+    async getUserProfile(userId: number, requesterId: number): Promise<ServiceResult<UserDto>> {
+        const user = await this.userRepository.getById(userId);
+        if (!user) {
+            return { success: false, message: 'User not found', errorCode: ErrorCode.NOT_FOUND };
+        }
+        const dto = this.toDto(user);
+        if (requesterId !== userId) {
+            const isFollowing = await this.userFollowRepository.isFollowing(requesterId, userId);
+            (dto as any).isFollowing = isFollowing;
+        }
+        return { success: true, data: dto };
     }
 
     async updateRole(input: UpdateRoleInput): Promise<ServiceResult<boolean>> {
@@ -123,6 +146,18 @@ export class UserService implements IUserService {
             return { success: false, message: 'Unfollow failed', errorCode: ErrorCode.INTERNAL_ERROR };
         }
         return { success: true, data: true };        
+    }
+
+    async removeFollower(input: RemoveFollowerInput): Promise<ServiceResult<boolean>> {
+        const isFollowing = await this.userFollowRepository.isFollowing(input.followerId, input.userId);
+        if (!isFollowing) {
+            return { success: false, message: 'This user is not following you', errorCode: ErrorCode.NOT_FOUND };
+        }
+        const result = await this.userFollowRepository.unfollow(input.followerId, input.userId);
+        if (!result) {
+            return { success: false, message: 'Remove follower failed', errorCode: ErrorCode.INTERNAL_ERROR };
+        }
+        return { success: true, data: true };
     }
 
     async getFollowers(input: GetFollowersInput): Promise<ServiceResult<UserDto[]>> {

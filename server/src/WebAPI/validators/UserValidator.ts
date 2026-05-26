@@ -6,7 +6,8 @@ export function validateProfileUpdate(
     email: string,
     firstName: string,
     lastName: string,
-    bio?: string
+    bio?: string,
+    password?: string
 ): ValidationResult {
     if (!username || username.trim().length < VALIDATION.USERNAME_MIN || username.trim().length > VALIDATION.USERNAME_MAX) {
         return { valid: false, message: `Username must be between ${VALIDATION.USERNAME_MIN} and ${VALIDATION.USERNAME_MAX} characters` };
@@ -25,6 +26,14 @@ export function validateProfileUpdate(
     }
     if (bio && bio.length > VALIDATION.BIO_MAX) {
         return { valid: false, message: `Bio cannot exceed ${VALIDATION.BIO_MAX} characters` };
+    }
+    if (password) {
+        if (password.length < VALIDATION.PASSWORD_MIN) {
+            return { valid: false, message: `Password must be at least ${VALIDATION.PASSWORD_MIN} characters` };
+        }
+        if (!VALIDATION.PASSWORD_PATTERN.test(password)) {
+            return { valid: false, message: 'Password must contain at least one uppercase letter and one number' };
+        }
     }
     return { valid: true };
 }
