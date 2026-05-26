@@ -59,7 +59,11 @@ export class CommentController {
 
     private async addComment(req: Request, res: Response): Promise<void> {
         try {
-            const { content, parentId } = req.body;
+            const body = req.body;
+            const content = body.content;
+            const parentId = Number(body.parent_id) ?? Number(body.parentId) ?? undefined;
+            console.log('Received addComment request with body:', req.body, parentId);
+            console.log('Received addComment request with content:', content, 'and parentId:', parentId);
             const postId = Number(req.params.postId);
             if (Number.isNaN(postId) || postId <= 0) {
                 res.status(400).json({ success: false, message: 'Invalid post id' });
