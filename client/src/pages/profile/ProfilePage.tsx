@@ -10,7 +10,8 @@ import type { CommentDto } from '../../models/comments/CommentDTO';
 import ProfileHeader from '../../components/profile/ProfileHeader';
 import FollowersList from '../../components/profile/FollowersList';
 import FollowingList from '../../components/profile/FollowingList';
-import { ArrowLeft, Edit2, Save, X, FileText, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Edit2, Save, X, FileText, MessageSquare, Tag } from 'lucide-react';
+import UserTagCloud from '../../components/profile/UserTagCloud';
 
 export default function ProfilePage() {
     const { userId } = useParams<{ userId: string }>();
@@ -36,7 +37,7 @@ export default function ProfilePage() {
     const [showFollowingList, setShowFollowingList] = useState(false);
 
     // ─── Novo: postovi i komentari ────────────────────────────────────────────
-    const [activeTab, setActiveTab] = useState<'posts' | 'comments'>('posts');
+    const [activeTab, setActiveTab] = useState<'posts' | 'comments' | 'tags'>('posts');
     const [userPosts, setUserPosts] = useState<PostDto[]>([]);
     const [userComments, setUserComments] = useState<CommentDto[]>([]);
     const [contentLoading, setContentLoading] = useState(false);
@@ -171,7 +172,6 @@ export default function ProfilePage() {
         };
     }, [targetUserId, isOwnProfile, token]);
 
-    // ─── Novo: učitaj postove i komentare kad se zna targetUserId ─────────────
     useEffect(() => {
         if (!targetUserId) return;
 
@@ -192,7 +192,6 @@ export default function ProfilePage() {
             ignore = true;
         };
     }, [targetUserId]);
-    // ─────────────────────────────────────────────────────────────────────────
 
     const handleFollow = async () => {
         if (!token || !profile) return;
@@ -589,6 +588,20 @@ export default function ProfilePage() {
                                     <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-pulse" />
                                 )}
                             </button>
+                            <button
+                                onClick={() => setActiveTab('tags')}
+                                className={`flex items-center gap-2 px-6 py-3.5 text-sm font-medium transition-colors relative ${
+                                    activeTab === 'tags'
+                                        ? 'text-pulse'
+                                        : 'text-muted hover:text-white'
+                                }`}
+                            >
+                                <Tag size={14} />
+                                Tags
+                                {activeTab === 'tags' && (
+                                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-pulse" />
+                                )}
+                            </button>
                         </div>
 
                         {/* Tab content */}
@@ -693,10 +706,12 @@ export default function ProfilePage() {
                                         ))}
                                     </div>
                                 )
-                            )}
+                            )} : (
+                                <UserTagCloud posts={userPosts} />
+                            )
                         </div>
                     </div>
-                    {/* ─────────────────────────────────────────────────────────────────── */}
+                    {}
 
                 </div>
             </div>
