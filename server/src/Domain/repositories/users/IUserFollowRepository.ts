@@ -1,4 +1,3 @@
-
 export interface IUserFollowRepository {
     follow(followerId: number, followingId: number): Promise<boolean>;
     unfollow(followerId: number, followingId: number): Promise<boolean>;
