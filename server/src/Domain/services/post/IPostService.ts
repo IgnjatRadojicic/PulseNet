@@ -12,6 +12,7 @@ import {
     UnlikePostInput,
     AddTagInput,
     RemoveTagInput,
+    GetPostsByUserInput,
 } from '../../types/inputs/PostInputs';
 
 export interface IPostService {
@@ -26,4 +27,5 @@ export interface IPostService {
     unlikePost(input: UnlikePostInput): Promise<ServiceResult<boolean>>;
     addTag(input: AddTagInput): Promise<ServiceResult<boolean>>;
     removeTag(input: RemoveTagInput): Promise<ServiceResult<boolean>>;
+    getPostsByUser(input: GetPostsByUserInput): Promise<ServiceResult<PostDto[]>>;
 }

@@ -12,6 +12,7 @@ import {
     FindRepliesByCommentIdInput,
     FindRepliesPaginatedInput,
     GetReplyCountInput,
+    GetCommentsByUserInput,
 } from '../../types/inputs/CommentInputs';
 
 export interface ICommentService {
@@ -26,4 +27,5 @@ export interface ICommentService {
     findRepliesByCommentId(input: FindRepliesByCommentIdInput): Promise<ServiceResult<CommentDto[]>>;
     findRepliesPaginated(input: FindRepliesPaginatedInput): Promise<ServiceResult<CommentDto[]>>;
     getReplyCount(input: GetReplyCountInput): Promise<ServiceResult<number>>;
+    getCommentsByUser(input: GetCommentsByUserInput): Promise<ServiceResult<CommentDto[]>>;
 }

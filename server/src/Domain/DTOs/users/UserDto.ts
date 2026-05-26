@@ -9,9 +9,8 @@ export class UserDto {
         public profileImage: string | null = null,
         public role: string = 'user'
     ) {}
-
-    
 }
+
 export class UserProfileDto {
     public constructor(
         public id: number = 0,

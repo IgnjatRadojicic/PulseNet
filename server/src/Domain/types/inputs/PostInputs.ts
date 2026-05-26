@@ -61,3 +61,8 @@ export type RemoveTagInput = {
     tagId: number;
     requesterId: number;
 };
+
+export interface GetPostsByUserInput {
+    userId: number;
+    requesterId?: number | null;
+}

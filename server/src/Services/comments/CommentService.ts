@@ -21,6 +21,7 @@ import {
     FindRepliesByCommentIdInput,
     FindRepliesPaginatedInput,
     GetReplyCountInput,
+    GetCommentsByUserInput,
 } from '../../Domain/types/inputs/CommentInputs';
 import { IUserRepository } from '../../Domain/repositories/users/IUserRepository';
 
@@ -83,6 +84,15 @@ export class CommentService implements ICommentService {
         }
 
         return { success: true, data: rootComments };
+    }
+
+    async getCommentsByUser(input: GetCommentsByUserInput): Promise<ServiceResult<CommentDto[]>> {
+        const comments = await this.commentReadWriteRepository.getByAuthor(input.userId);
+        const visibleComments = comments.filter(c => !c.isDeleted);
+        const dtos = await Promise.all(
+            visibleComments.map(c => this.buildCommentDto(c, input.requesterId ?? undefined))
+        );
+        return { success: true, data: dtos };
     }
 
     async updateComment(input: UpdateCommentInput): Promise<ServiceResult<CommentDto>> {

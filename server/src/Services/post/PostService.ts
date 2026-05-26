@@ -183,6 +183,12 @@ export class PostService implements IPostService {
         return { success: true, data: dtos };
     }
 
+    async getPostsByUser(input: PostInputs.GetPostsByUserInput): Promise<ServiceResult<PostDto[]>> {
+        const posts = await this.postRepository.getByAuthorId(input.userId);
+        const dtos = await this.buildPostDtos(posts, input.requesterId ?? null);
+        return { success: true, data: dtos };
+    }
+
     async updatePost(input: PostInputs.UpdatePostInput): Promise<ServiceResult<PostDto>> {
         const postResult = await this.postRepository.getById(input.postId);
         if (!postResult.ok) {
