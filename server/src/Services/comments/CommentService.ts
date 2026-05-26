@@ -62,24 +62,26 @@ export class CommentService implements ICommentService {
         return { success: true, data: dto };
     }
 
+    // CommentService.ts
     async getCommentsByPost(input: GetCommentsByPostInput): Promise<ServiceResult<CommentDto[]>> {
-        const post = await this.postRepository.getById(input.postId);
-        if (!post) {
-            return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
-        }
-
-        const comments = await this.commentReadWriteRepository.getByPost(input.postId);
-        const dtos = await Promise.all(comments.map(c => this.buildCommentDto(c)));
-
-        const rootComments = dtos.filter(c => c.parentId === null);
-        const replies = dtos.filter(c => c.parentId !== null);
-
-        for (const root of rootComments) {
-            root.replies = replies.filter(r => r.parentId === root.id);
-        }
-
-        return { success: true, data: rootComments };
+    const post = await this.postRepository.getById(input.postId);
+    if (!post) {
+        return { success: false, message: 'Post not found', errorCode: ErrorCode.NOT_FOUND };
     }
+
+    const comments = await this.commentReadWriteRepository.getByPost(input.postId);
+    const dtos = await Promise.all(
+        comments.map(c => this.buildCommentDto(c, input.currentUserId ?? undefined)) // ← proslijedi
+    );
+
+    const rootComments = dtos.filter(c => c.parentId === null);
+    const replies = dtos.filter(c => c.parentId !== null);
+    for (const root of rootComments) {
+        root.replies = replies.filter(r => r.parentId === root.id);
+    }
+
+    return { success: true, data: rootComments };
+}
 
     async updateComment(input: UpdateCommentInput): Promise<ServiceResult<CommentDto>> {
         const comment = await this.commentReadWriteRepository.getById(input.commentId);
@@ -194,7 +196,7 @@ export class CommentService implements ICommentService {
         }
 
         const comments = await this.commentQueryRepository.findRootCommentsByPost(input.postId);
-        const dtos = await Promise.all(comments.map(c => this.buildCommentDto(c)));
+        const dtos = await Promise.all(comments.map(c => this.buildCommentDto(c, input.currentUserId)));
         return { success: true, data: dtos };
     }
 
@@ -234,19 +236,27 @@ export class CommentService implements ICommentService {
         return { success: true, data: count ?? 0 };
     }
 
-    private async buildCommentDto(comment: Comment): Promise<CommentDto> {
-
-        return new CommentDto(
-            comment.id,
-            comment.isDeleted ? '[comment deleted]' : comment.content,
-            comment.postId,
-            comment.authorId,
-            comment.parentId,
-            comment.isDeleted,
-            comment.isFlagged,
-            [],
-            comment.createdAt,
-            comment.updatedAt
-        );
+    private async buildCommentDto(comment: Comment, currentUserId?: number): Promise<CommentDto> {
+    const likesCount = await this.commentLikeRepository.getLikeCount(comment.id) ?? 0;
+    
+    let isLiked = false;
+    if (currentUserId) {
+        isLiked = await this.commentLikeRepository.hasLiked(currentUserId, comment.id);
     }
+
+    return new CommentDto(
+        comment.id,
+        comment.isDeleted ? '[comment deleted]' : comment.content,
+        comment.postId,
+        comment.authorId,
+        comment.parentId,
+        comment.isDeleted,
+        comment.isFlagged,
+        [],
+        comment.createdAt,
+        comment.updatedAt,
+        likesCount,
+        isLiked
+    );
+}
 }

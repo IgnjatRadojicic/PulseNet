@@ -18,6 +18,7 @@ export type DeleteCommentInput = {
 
 export type GetCommentsByPostInput = {
     postId: number;
+    currentUserId: number;
 };
 
 export type FlagCommentInput = {
@@ -38,6 +39,7 @@ export type UnlikeCommentInput = {
 
 export type FindRootCommentsByPostInput = {
     postId: number;
+    currentUserId: number;
 };
 
 export type FindRepliesByCommentIdInput = {

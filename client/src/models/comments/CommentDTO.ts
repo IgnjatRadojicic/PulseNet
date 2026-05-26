@@ -15,7 +15,7 @@ export interface CommentDto {
     isFlagged: number;
     createdAt: string;
     updatedAt?: string;
-    likeCount: number;
+    likesCount: number;
     authorUsername: string;
     isLikedByUser: boolean;
     isLiked: boolean;

@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { ICommentService } from '../../Domain/services/comments/ICommentService';
-import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
+import { authenticate, optionalAuthenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { validateCommentContent } from '../validators/CommentValidator';
 import { sendServiceResult } from '../helpers/responseHelper';
 
@@ -15,7 +15,7 @@ export class CommentController {
     }
 
     private initializeRoutes(): void {
-        this.router.get('/posts/:postId/comments', this.getCommentsByPost.bind(this));
+        this.router.get('/posts/:postId/comments', optionalAuthenticate, this.getCommentsByPost.bind(this));
         this.router.post('/posts/:postId/comments', authenticate,this.addComment.bind(this));
         this.router.put('/comments/:id', authenticate, this.updateComment.bind(this));
         this.router.delete('/comments/:id', authenticate, this.deleteComment.bind(this));
@@ -24,18 +24,21 @@ export class CommentController {
     }
 
     private async getCommentsByPost(req: Request, res: Response): Promise<void> {
-        try {
-            const postId = Number(req.params.postId);
-            if (Number.isNaN(postId) || postId <= 0) {
-                res.status(400).json({ success: false, message: 'Invalid post id' });
-                return;
-            }
-            const result = await this.commentService.getCommentsByPost({ postId });
-            sendServiceResult(res, result);
-        } catch {
-            res.status(500).json({ success: false, message: 'Internal server error' });
+    try {
+        const postId = Number(req.params.postId);
+        if (Number.isNaN(postId) || postId <= 0) {
+            res.status(400).json({ success: false, message: 'Invalid post id' });
+            return;
         }
+        const result = await this.commentService.getCommentsByPost({ 
+            postId,
+            currentUserId: req.user?.id ?? 0,
+        });
+        sendServiceResult(res, result);
+    } catch {
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
+}
 
     private async addComment(req: Request, res: Response): Promise<void> {
         try {
