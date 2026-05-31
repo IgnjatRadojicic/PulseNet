@@ -15,28 +15,12 @@ export interface CommentDto {
     isFlagged: number;
     createdAt: string;
     updatedAt?: string;
-    likesCount: number;
+    likeCount: number;
     authorUsername: string;
     isLikedByUser: boolean;
     isLiked: boolean;
     username?: string;
     replies?: CommentDto[];
-
-    /** @deprecated use postId */
-    post_id?: number;
-    /** @deprecated use authorId */
-    author_id?: number;
-    /** @deprecated use parentId */
-    parent_id?: number | null;
-    /** @deprecated use createdAt */
-    created_at?: string;
-    /** @deprecated use updatedAt */
-    updated_at?: string;
-    /** @deprecated use isLiked */
-    is_liked?: boolean;
-    /** @deprecated use likesCount */
-    likes_count?: number;
-    /** @deprecated check isDeleted */
     deleted_at?: string | null;
     author?: CommentAuthor;
 }

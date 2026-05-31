@@ -13,16 +13,7 @@ export interface PaginatedResponse<T> {
     totalPages: number;
 }
 
-export interface AdminUserDto {
-    id: number;
-    username: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    bio: string | null;
-    profileImage: string | null;
-    role: string;
-}
+
 
 export interface DashboardStats {
     totalUsers: number;
