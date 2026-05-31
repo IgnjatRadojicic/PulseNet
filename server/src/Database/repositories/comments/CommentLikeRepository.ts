@@ -5,7 +5,7 @@ export class CommentLikeRepository extends BaseRepository implements ICommentLik
 
     async like(commentId: number, userId: number): Promise<boolean> {
         const result = await this.executeWrite(
-            `INSERT IGNORE INTO comment_likes (user_id, comment_id) VALUES (?, ?)`,
+            'INSERT INTO comment_likes (user_id, comment_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
             [userId, commentId]
         );
         return result.ok && result.data.affectedRows > 0;
@@ -13,7 +13,7 @@ export class CommentLikeRepository extends BaseRepository implements ICommentLik
 
     async unlike(commentId: number, userId: number): Promise<boolean> {
         const result = await this.executeWrite(
-            `DELETE FROM comment_likes WHERE user_id = ? AND comment_id = ?`,
+            'DELETE FROM comment_likes WHERE user_id = $1 AND comment_id = $2',
             [userId, commentId]
         );
         return result.ok && result.data.affectedRows > 0;
@@ -21,9 +21,7 @@ export class CommentLikeRepository extends BaseRepository implements ICommentLik
 
     async getLikeCount(commentId: number): Promise<number> {
         const result = await this.executeScalar<number>(
-            `SELECT COUNT(*) as count 
-             FROM comment_likes 
-             WHERE comment_id = ?`,
+            'SELECT COUNT(*)::int as count FROM comment_likes WHERE comment_id = $1',
             [commentId]
         );
         return result.ok ? result.data : 0;
@@ -31,9 +29,7 @@ export class CommentLikeRepository extends BaseRepository implements ICommentLik
 
     async hasLiked(userId: number, commentId: number): Promise<boolean> {
         const result = await this.executeScalar<number>(
-            `SELECT COUNT(*) as count 
-             FROM comment_likes 
-             WHERE user_id = ? AND comment_id = ?`,
+            'SELECT COUNT(*)::int as count FROM comment_likes WHERE user_id = $1 AND comment_id = $2',
             [userId, commentId]
         );
         return result.ok && result.data > 0;

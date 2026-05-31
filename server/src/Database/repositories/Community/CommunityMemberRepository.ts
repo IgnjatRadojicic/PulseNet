@@ -3,14 +3,13 @@ import { ICommunityMemberRepository } from '../../../Domain/repositories/communi
 import { BaseRepository } from '../BaseRepository';
 import { mapCommunityMember, COMMUNITY_MEMBER_FIELDS } from '../../mappers/CommunityMemberMapper';
 import { CommunityRole } from '../../../Domain/enums/CommunityRole';
-import { RowDataPacket } from 'mysql2';
 import { RepositoryResult } from '../../../Domain/types/RepositoryResult';
 
 export class CommunityMemberRepository extends BaseRepository implements ICommunityMemberRepository {
 
     async getMemberCount(communityId: number): Promise<number> {
         const result = await this.executeScalar<number>(
-            'SELECT COUNT(*) as count FROM community_members WHERE community_id = ?',
+            'SELECT COUNT(*)::int as count FROM community_members WHERE community_id = $1',
             [communityId]
         );
         return result.ok ? result.data : 0;
@@ -18,7 +17,7 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
 
     async getMember(userId: number, communityId: number): Promise<RepositoryResult<CommunityMember>> {
         return this.executeReadOne(
-            `SELECT ${COMMUNITY_MEMBER_FIELDS} FROM community_members WHERE user_id = ? AND community_id = ?`,
+            `SELECT ${COMMUNITY_MEMBER_FIELDS} FROM community_members WHERE user_id = $1 AND community_id = $2`,
             [userId, communityId],
             mapCommunityMember
         );
@@ -26,7 +25,7 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
 
     async getMembers(communityId: number): Promise<CommunityMember[]> {
         return this.executeRead(
-            `SELECT ${COMMUNITY_MEMBER_FIELDS} FROM community_members WHERE community_id = ?`,
+            `SELECT ${COMMUNITY_MEMBER_FIELDS} FROM community_members WHERE community_id = $1`,
             [communityId],
             mapCommunityMember
         );
@@ -34,15 +33,15 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
 
     async getMemberUserIds(communityId: number): Promise<number[]> {
         return this.executeRead(
-            'SELECT user_id FROM community_members WHERE community_id = ?',
+            'SELECT user_id FROM community_members WHERE community_id = $1',
             [communityId],
-            (r: RowDataPacket) => r.user_id as number
+            (r) => r.user_id as number
         );
     }
 
     async addMember(userId: number, communityId: number, role: CommunityRole, status: string): Promise<boolean> {
         const result = await this.executeWrite(
-            'INSERT INTO community_members (user_id, community_id, role, status) VALUES (?, ?, ?, ?)',
+            'INSERT INTO community_members (user_id, community_id, role, status) VALUES ($1, $2, $3, $4)',
             [userId, communityId, role, status]
         );
         return result.ok && result.data.affectedRows > 0;
@@ -50,7 +49,7 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
 
     async updateMemberRole(userId: number, communityId: number, role: CommunityRole): Promise<boolean> {
         const result = await this.executeWrite(
-            'UPDATE community_members SET role = ? WHERE user_id = ? AND community_id = ?',
+            'UPDATE community_members SET role = $1 WHERE user_id = $2 AND community_id = $3',
             [role, userId, communityId]
         );
         return result.ok && result.data.affectedRows > 0;
@@ -58,7 +57,7 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
 
     async updateMemberStatus(userId: number, communityId: number, status: string): Promise<boolean> {
         const result = await this.executeWrite(
-            'UPDATE community_members SET status = ? WHERE user_id = ? AND community_id = ?',
+            'UPDATE community_members SET status = $1 WHERE user_id = $2 AND community_id = $3',
             [status, userId, communityId]
         );
         return result.ok && result.data.affectedRows > 0;
@@ -66,7 +65,7 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
 
     async removeMember(userId: number, communityId: number): Promise<boolean> {
         const result = await this.executeWrite(
-            'DELETE FROM community_members WHERE user_id = ? AND community_id = ?',
+            'DELETE FROM community_members WHERE user_id = $1 AND community_id = $2',
             [userId, communityId]
         );
         return result.ok && result.data.affectedRows > 0;
