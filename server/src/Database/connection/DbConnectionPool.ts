@@ -33,14 +33,14 @@ function makePool(host: string, port: number): Pool {
         ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
         max: 10,
         idleTimeoutMillis: 30_000,
-        connectionTimeoutMillis: 2_000,
+        connectionTimeoutMillis: 10_000,
     });
 }
 
 const SINGLE_NODE = !process.env.DB_SLAVE1_HOST;
 
 if (SINGLE_NODE) {
-    console.info('[db] Single-node mode — reads and writes go to primary');
+    console.info('[db] Single-node mode  reads and writes go to primary');
 }
 
 const masterNode: DbNode = {
@@ -80,6 +80,7 @@ const slaveNodes: DbNode[] = SINGLE_NODE ? [] : [
 let currentMaster: DbNode = masterNode;
 let currentSlaveIndex = 0;
 let healthCheckInterval: ReturnType<typeof setInterval> | null = null;
+let promoting = false;
 
 async function checkNode(node: DbNode): Promise<void> {
     const start = Date.now();
@@ -92,9 +93,10 @@ async function checkNode(node: DbNode): Promise<void> {
         const elapsed = Date.now() - start;
         node.responseTime = elapsed;
         node.status = elapsed > DEGRADED_THRESHOLD_MS ? 'degraded' : 'healthy';
-    } catch {
+    } catch (err) {
         node.status = 'unreachable';
         node.responseTime = -1;
+        console.error(`[db] ${node.name} connection failed: ${(err as Error).message}`);
     } finally {
         client?.release();
         node.lastChecked = new Date();
@@ -114,11 +116,22 @@ export function startHealthCheck(intervalMS: number = 10_000): void {
             await checkNode(slave);
         }
 
-        if (currentMaster.status === 'unreachable') {
-            const healthySlave = slaveNodes.find(s => s.status !== 'unreachable');
-            if (healthySlave) {
-                console.warn(`[db] Master unreachable, promoting ${healthySlave.name} to master`);
-                currentMaster = healthySlave;
+        if (currentMaster.status === 'unreachable' && !promoting) {
+            const candidate = slaveNodes.find(s => s !== currentMaster && s.status !== 'unreachable');
+            if (candidate) {
+                promoting = true;
+                let c: PoolClient | null = null;
+                try {
+                    c = await candidate.pool.connect();
+                    await c.query('SELECT pg_promote()');
+                    console.warn(`[db] Promoted ${candidate.name} to primary`);
+                    currentMaster = candidate;
+                } catch (err) {
+                    console.error(`[db] Failed to promote ${candidate.name}: ${(err as Error).message}`);
+                } finally {
+                    c?.release();
+                    promoting = false;
+                }
             }
         }
     }, intervalMS);

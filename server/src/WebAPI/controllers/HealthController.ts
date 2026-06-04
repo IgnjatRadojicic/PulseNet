@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { getHealthStatus } from '../../Database/connection/DbConnectionPool';
+import { getHealthStatus, getReadConnection, getWriteConnection } from '../../Database/connection/DbConnectionPool';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { authorize } from '../../Middlewares/authorization/AuthorizeMiddleware';
 import { UserRole } from '../../Domain/enums/UserRole';
@@ -27,10 +27,39 @@ export class HealthController {
         sendServiceResult(res, result);
     }
 
-    private dbHealth(req: Request, res: Response): void {
+    private async dbHealth(req: Request, res: Response): Promise<void> {
         try {
-            const status = getHealthStatus();
-            const result = { success: true, data: status };
+            const nodeStatus = getHealthStatus();
+            const readConn = getReadConnection();
+            const writeConn = getWriteConnection();
+
+            let readPing = false;
+            let writePing = false;
+
+            if (readConn.success && readConn.data) {
+                try {
+                    await readConn.data.query('SELECT 1');
+                    readPing = true;
+                } catch { /* node unreachable */ }
+            }
+
+            if (writeConn.success && writeConn.data) {
+                try {
+                    await writeConn.data.query('SELECT 1');
+                    writePing = true;
+                } catch { /* node unreachable */ }
+            }
+
+            const result = {
+                success: true,
+                data: {
+                    nodes: nodeStatus,
+                    connections: {
+                        read: readPing ? 'ok' : 'unavailable',
+                        write: writePing ? 'ok' : 'unavailable',
+                    },
+                },
+            };
             sendServiceResult(res, result);
         } catch {
             const result = { success: false, message: 'Failed to retrieve DB health status', errorCode: ErrorCode.INTERNAL_ERROR };
