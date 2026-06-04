@@ -29,9 +29,10 @@ export class AuthController {
     private setRefreshCookie(res: Response, token: string, expiresAt: Date): void {
         res.cookie(COOKIE_NAME, token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'PRODUCTION',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            path: COOKIE_PATH
+            path: COOKIE_PATH,
+            expires: expiresAt,
         });
     }
 
@@ -69,7 +70,8 @@ export class AuthController {
                 sendServiceResult(res, result);
                 return;
             }
-            this.setRefreshCookie(res, result.data.refreshToken, result.data.refreshExpiresAt);                       
+            this.setRefreshCookie(res, result.data.refreshToken, result.data.refreshExpiresAt);
+            res.status(201).json({ success: true, message: 'Registration successful', data: { accessToken: result.data.accessToken } });
         } catch {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
