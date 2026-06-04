@@ -15,6 +15,19 @@ export class CommunityMemberRepository extends BaseRepository implements ICommun
         return result.ok ? result.data : 0;
     }
 
+    async getMemberCountBatch(communityIds: number[]): Promise<Map<number, number>> {
+        if (!communityIds || communityIds.length === 0) return new Map<number, number>();
+        const placeholders = this.buildPlaceholders(communityIds);
+        const result = await this.executeRead(
+            `SELECT community_id, COUNT(*)::int as count FROM community_members WHERE community_id IN (${placeholders}) GROUP BY community_id`,
+            communityIds,
+            (r) => ({ communityId: r.community_id as number, count: r.count as number })
+        );
+        const countMap = new Map<number, number>();
+        result.forEach(r => countMap.set(r.communityId, r.count));
+        return countMap;
+    }
+
     async getMember(userId: number, communityId: number): Promise<RepositoryResult<CommunityMember>> {
         return this.executeReadOne(
             `SELECT ${COMMUNITY_MEMBER_FIELDS} FROM community_members WHERE user_id = $1 AND community_id = $2`,

@@ -30,6 +30,14 @@ export class CommentReadWriteRepository extends BaseRepository implements IComme
         );
     }
 
+    async getCommentCountByAuthor(authorId: number): Promise<number> {
+        const result = await this.executeScalar<number>(
+            'SELECT COUNT(*)::int as count FROM comments WHERE author_id = $1 AND is_deleted = FALSE',
+            [authorId]
+        );
+        return result.ok ? result.data : 0;
+    }
+
     async create(comment: Comment): Promise<RepositoryResult<Comment>> {
         const result = await this.executeWrite(
             'INSERT INTO comments (post_id, author_id, parent_id, content) VALUES ($1, $2, $3, $4) RETURNING id',

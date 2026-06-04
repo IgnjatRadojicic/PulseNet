@@ -48,6 +48,14 @@ export class PostRepository extends BaseRepository implements IPostRepository {
         );
     }
 
+    async getPostCountByAuthor(authorId: number): Promise<number> {
+        const result = await this.executeScalar<number>(
+            'SELECT COUNT(*)::int as count FROM posts WHERE author_id = $1',
+            [authorId]
+        );
+        return result.ok ? result.data : 0;
+    }
+
     async getCommunityPostIds(communityIds: number[]): Promise<number[]> {
         if (communityIds.length === 0) return [];
         const placeholders = this.buildPlaceholders(communityIds);
