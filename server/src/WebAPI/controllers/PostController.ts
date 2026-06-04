@@ -156,6 +156,7 @@ export class PostController {
             const result = await this.postService.updatePost({
                 postId: id,
                 requesterId: req.user!.id,
+                requesterRole: req.user!.role,
                 title,
                 content,
                 mediaUrl: mediaUrl ?? null,
@@ -176,6 +177,7 @@ export class PostController {
             const result = await this.postService.deletePost({
                 postId: id,
                 requesterId: req.user!.id,
+                requesterRole: req.user!.role,
             });
             sendServiceResult(res, result);
         } catch {
