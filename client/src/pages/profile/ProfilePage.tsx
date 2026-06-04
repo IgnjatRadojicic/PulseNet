@@ -36,12 +36,12 @@ export default function ProfilePage() {
     const [showFollowersList, setShowFollowersList] = useState(false);
     const [showFollowingList, setShowFollowingList] = useState(false);
 
-    // ─── Novo: postovi i komentari ────────────────────────────────────────────
+    //  Novo: postovi i komentari 
     const [activeTab, setActiveTab] = useState<'posts' | 'comments' | 'tags'>('posts');
     const [userPosts, setUserPosts] = useState<PostDto[]>([]);
     const [userComments, setUserComments] = useState<CommentDto[]>([]);
     const [contentLoading, setContentLoading] = useState(false);
-    // ─────────────────────────────────────────────────────────────────────────
+    // 
 
     const isOwnProfile = !userId || (user && user.id === parseInt(userId));
     const targetUserId = userId ? parseInt(userId) : user?.id;
@@ -543,7 +543,7 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* ─── Novo: Postovi i Komentari tabovi ─────────────────────────────── */}
+                    {/*  Novo: Postovi i Komentari tabovi  */}
                     <div className="mt-6 rounded-xl overflow-hidden" style={{
                         background: 'linear-gradient(135deg, #0a0a14 0%, #08080e 100%)',
                         border: '1px solid rgba(108, 99, 255, 0.2)',

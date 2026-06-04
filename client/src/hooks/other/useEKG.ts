@@ -61,7 +61,7 @@ export function useEKG(
         ctx.lineWidth = 6;
         ctx.stroke();
 
-        // Travelling highlight — use responsive glow width
+        // Travelling highlight  use responsive glow width
         const gx = (lineOffset * 1.3) % W;
         const xStart = Math.max(0, gx - glowHalfWidth);
         const xEnd = Math.min(W, gx + glowHalfWidth);
