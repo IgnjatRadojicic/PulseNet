@@ -28,6 +28,8 @@ import { TagService } from './Services/tags/TagService';
 import { AuditService } from './Services/audit/AuditService';
 import { CommunityMemberService } from './Services/Communities/CommunityMemberService';
 
+
+import { authLimiter, likeLimiter, generalLimiter } from './Middlewares/rateLimit/RateLimitMiddleware';
 import { AuthController } from './WebAPI/controllers/AuthController';
 import { UserController } from './WebAPI/controllers/UserController';
 import { PostController } from './WebAPI/controllers/PostController';
@@ -87,6 +89,12 @@ const communityService = new CommunityService(communityRepository, communityMemb
 const tagService = new TagService(tagRepository);
 
 app.use(createAuditMiddleware(auditService));
+
+app.use('/api/v1', generalLimiter);
+app.use('/api/v1/auth/login', authLimiter);
+app.use('/api/v1/auth/register', authLimiter);
+app.use('/api/v1/posts/:id/like', likeLimiter);
+app.use('/api/v1/comments/:id/like', likeLimiter);
 
 const authController = new AuthController(authService, auditService);
 const userController = new UserController(userService);
