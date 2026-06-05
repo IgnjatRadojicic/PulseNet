@@ -11,7 +11,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ─── users ────────────────────────────────────────────────────────────────────
+--  users 
 
 CREATE TABLE IF NOT EXISTS users (
     id             SERIAL       PRIMARY KEY,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role  ON users(role);
 
--- ─── communities ──────────────────────────────────────────────────────────────
+--  communities 
 
 CREATE TABLE IF NOT EXISTS communities (
     id          SERIAL      PRIMARY KEY,
@@ -55,14 +55,14 @@ CREATE TABLE IF NOT EXISTS communities (
 CREATE INDEX IF NOT EXISTS idx_communities_type    ON communities(type);
 CREATE INDEX IF NOT EXISTS idx_communities_creator ON communities(creator_id);
 
--- ─── tags ─────────────────────────────────────────────────────────────────────
+--  tags 
 
 CREATE TABLE IF NOT EXISTS tags (
     id   SERIAL      PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL
 );
 
--- ─── posts ────────────────────────────────────────────────────────────────────
+--  posts 
 
 CREATE TABLE IF NOT EXISTS posts (
     id           SERIAL      PRIMARY KEY,
@@ -87,7 +87,7 @@ CREATE TRIGGER trg_posts_updated_at
     BEFORE UPDATE ON posts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- ─── comments ─────────────────────────────────────────────────────────────────
+--  comments 
 
 CREATE TABLE IF NOT EXISTS comments (
     id         SERIAL       PRIMARY KEY,
@@ -113,7 +113,7 @@ CREATE TRIGGER trg_comments_updated_at
     BEFORE UPDATE ON comments
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- ─── refresh_tokens ───────────────────────────────────────────────────────────
+--  refresh_tokens 
 
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id         SERIAL       PRIMARY KEY,
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
 
--- ─── audits ───────────────────────────────────────────────────────────────────
+--  audits 
 
 CREATE TABLE IF NOT EXISTS audits (
     id          SERIAL       PRIMARY KEY,
@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS audits (
 CREATE INDEX IF NOT EXISTS idx_audits_user    ON audits(user_id);
 CREATE INDEX IF NOT EXISTS idx_audits_created ON audits(created_at DESC);
 
--- ─── community_members ────────────────────────────────────────────────────────
+--  community_members 
 
 CREATE TABLE IF NOT EXISTS community_members (
     user_id      INTEGER     NOT NULL,
@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS community_members (
     CONSTRAINT fk_cm_community FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE
 );
 
--- ─── post_tags ────────────────────────────────────────────────────────────────
+--  post_tags 
 
 CREATE TABLE IF NOT EXISTS post_tags (
     post_id INTEGER NOT NULL,
@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS post_tags (
     CONSTRAINT fk_pt_tag  FOREIGN KEY (tag_id)  REFERENCES tags(id)  ON DELETE CASCADE
 );
 
--- ─── post_likes ───────────────────────────────────────────────────────────────
+--  post_likes 
 
 CREATE TABLE IF NOT EXISTS post_likes (
     user_id  INTEGER     NOT NULL,
@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS post_likes (
 
 CREATE INDEX IF NOT EXISTS idx_post_likes_post ON post_likes(post_id);
 
--- ─── comment_likes ────────────────────────────────────────────────────────────
+--  comment_likes 
 
 CREATE TABLE IF NOT EXISTS comment_likes (
     user_id    INTEGER     NOT NULL,
@@ -196,7 +196,7 @@ CREATE TABLE IF NOT EXISTS comment_likes (
 
 CREATE INDEX IF NOT EXISTS idx_comment_likes_comment ON comment_likes(comment_id);
 
--- ─── user_follows ─────────────────────────────────────────────────────────────
+--  user_follows 
 
 CREATE TABLE IF NOT EXISTS user_follows (
     follower_id  INTEGER     NOT NULL,

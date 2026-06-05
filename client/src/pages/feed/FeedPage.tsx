@@ -13,6 +13,7 @@ export default function FeedPage() {
     const [communities, setCommunities] = useState<{ id: number; name: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [retryCount, setRetryCount] = useState(0);
 
     useEffect(() => {
         let ignore = false;
@@ -46,7 +47,7 @@ export default function FeedPage() {
         load();
 
         return () => { ignore = true; };
-    }, [user]);
+    }, [user, retryCount]);
 
 
     return (

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/Users/WorkAccount/Desktop/odp/odp_C3S_tim_22/client/src && ls -la)",
+      "Read(//c/c/Users/WorkAccount/Desktop/odp/odp_C3S_tim_22/client/**)"
+    ]
+  }
+}

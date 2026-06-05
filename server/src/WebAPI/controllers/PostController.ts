@@ -15,7 +15,7 @@ export class PostController {
     }
 
     private initializeRoutes(): void {
-        this.router.get('/posts/public', this.getPublicPosts.bind(this));
+        this.router.get('/posts/public', optionalAuthenticate, this.getPublicPosts.bind(this));
         this.router.get('/posts/feed', authenticate, this.getFeed.bind(this));
         this.router.get('/posts/community/:communityId', this.getByCommunity.bind(this));
         this.router.get('/posts/:id', this.getById.bind(this));
