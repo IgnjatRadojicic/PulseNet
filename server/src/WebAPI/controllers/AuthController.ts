@@ -27,10 +27,11 @@ export class AuthController {
     }
 
     private setRefreshCookie(res: Response, token: string, expiresAt: Date): void {
+        const isProduction = process.env.NODE_ENV === 'production';
         res.cookie(COOKIE_NAME, token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'strict',
             path: COOKIE_PATH,
             expires: expiresAt,
         });
