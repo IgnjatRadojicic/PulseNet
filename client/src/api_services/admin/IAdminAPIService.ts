@@ -52,7 +52,13 @@ export interface NodeStatus {
     lastChecked: Date | null;
 }
 
-export type HealthStatus = NodeStatus[];
+export interface HealthStatus {
+    nodes: NodeStatus[];
+    connections: {
+        read: string;
+        write: string;
+    };
+}
 
 export interface IAdminAPIService {
     getAllUsers(token: string, page?: number, limit?: number): Promise<ApiResponse<PaginatedResponse<AdminUserDto>>>;
