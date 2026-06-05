@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             await authApiService.logout();
         } catch {
-            // best effort — clear client state regardless of whether the backend call succeeded
+            // best effort
         }
         setToken(null);
         setUser(null);

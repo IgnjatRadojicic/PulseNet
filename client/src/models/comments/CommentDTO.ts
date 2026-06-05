@@ -1,28 +1,17 @@
-export interface CommentAuthor {
-    id: number;
-    username: string;
-    avatar?: string;
-}
-
-// Matches actual API response (camelCase from backend)
 export interface CommentDto {
     id: number;
     postId: number;
     authorId: number;
     parentId: number | null;
     content: string;
-    isDeleted: number;
-    isFlagged: number;
+    isDeleted: boolean;
+    isFlagged: boolean;
     createdAt: string;
     updatedAt?: string;
-    likeCount: number;
+    likesCount: number;
     authorUsername: string;
-    isLikedByUser: boolean;
     isLiked: boolean;
-    username?: string;
     replies?: CommentDto[];
-    deleted_at?: string | null;
-    author?: CommentAuthor;
 }
 
 export interface CreateCommentDto {

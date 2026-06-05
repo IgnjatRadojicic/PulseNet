@@ -17,7 +17,7 @@ export function useComments({ postId, token }: UseCommentsOptions) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [sortBy, setSortBy] = useState<CommentSortOption>('newest');
-    const [hasMore, setHasMore] = useState(false);
+    const hasMore = false;
     const [totalComments, setTotalComments] = useState(0);
 
     const pendingLikesRef = useRef<Set<number>>(new Set());
@@ -38,7 +38,7 @@ export function useComments({ postId, token }: UseCommentsOptions) {
 
             if (res.success && res.data) {
                 const allComments = Array.isArray(res.data) ? res.data : [];
-                const rootComments = allComments.filter(c => !c.parentId && !c.parent_id);
+                const rootComments = allComments.filter(c => !c.parentId);
                 
                 setComments(rootComments);
                 setTotalComments(rootComments.length);
@@ -61,12 +61,12 @@ export function useComments({ postId, token }: UseCommentsOptions) {
 
     const sortedComments = [...comments].sort((a, b) => {
         if (sortBy === 'newest') {
-            const dateA = new Date(a.createdAt ?? a.created_at ?? 0).getTime();
-            const dateB = new Date(b.createdAt ?? b.created_at ?? 0).getTime();
+            const dateA = new Date(a.createdAt ?? 0).getTime();
+            const dateB = new Date(b.createdAt ?? 0).getTime();
             return dateB - dateA;
         }
-        const likesA = a._likeCount ?? a.likesCount ?? a.likes_count ?? 0;
-        const likesB = b._likeCount ?? b.likesCount ?? b.likes_count ?? 0;
+        const likesA = a._likeCount ?? a.likesCount ?? 0;
+        const likesB = b._likeCount ?? b.likesCount ?? 0;
         return likesB - likesA;
     });
 
@@ -128,9 +128,7 @@ export function useComments({ postId, token }: UseCommentsOptions) {
                 _likeCount: newLikes,
                 _optimisticLike: true,
                 likesCount: newLikes,
-                likes_count: newLikes,
                 isLiked: !isCurrentlyLiked,
-                is_liked: !isCurrentlyLiked,
             };
         }));
         
