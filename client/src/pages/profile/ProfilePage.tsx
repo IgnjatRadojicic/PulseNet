@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/auth/useAuthHook';
-import { useEKG } from '../../hooks/other/useEKG';
 import { useParticles } from '../../hooks/other/useParticles';
 import { UserProfileAPIService } from '../../api_services/users/UserProfileAPIService';
 import type { UserProfileDto } from '../../models/users/UserDto';
@@ -47,15 +46,11 @@ export default function ProfilePage() {
     const targetUserId = userId ? parseInt(userId) : user?.id;
 
     const pageRef = useRef<HTMLDivElement>(null);
-    const ekgWrapRef = useRef<HTMLDivElement>(null);
     const pCanvasRef = useRef<HTMLCanvasElement>(null);
-    const eCanvasRef = useRef<HTMLCanvasElement>(null);
     const mouseRef = useRef<{ x: number; y: number } | null>(null);
 
-    const [ekgDims, setEkgDims] = useState({ W: 0, H: 0 });
     const [particleDims, setParticleDims] = useState({ W: 0, H: 0 });
 
-    const { draw: drawEKG } = useEKG(eCanvasRef, ekgDims.W, ekgDims.H);
     const { draw: drawParticles } = useParticles(
         pCanvasRef,
         mouseRef,
@@ -65,20 +60,11 @@ export default function ProfilePage() {
 
     useEffect(() => {
         const page = pageRef.current;
-        const ekgWrap = ekgWrapRef.current;
-        if (!page || !ekgWrap) return;
+        if (!page) return;
 
         function resize() {
-            if (!page || !ekgWrap) return;
+            if (!page) return;
             const W = page.offsetWidth;
-            const ekgH = ekgWrap.offsetHeight;
-
-            if (eCanvasRef.current) {
-                eCanvasRef.current.width = W;
-                eCanvasRef.current.height = ekgH > 0 ? ekgH : 400;
-            }
-            setEkgDims({ W, H: ekgH > 0 ? ekgH : 400 });
-
             const vh = window.innerHeight;
             if (pCanvasRef.current) {
                 pCanvasRef.current.width = W;
@@ -89,20 +75,10 @@ export default function ProfilePage() {
 
         setTimeout(resize, 100);
         resize();
-
         window.addEventListener('resize', resize);
 
-        const ekgObserver = new ResizeObserver(resize);
-        ekgObserver.observe(ekgWrap);
-
-        const onMouseMove = (e: MouseEvent) => {
-            mouseRef.current = { x: e.clientX, y: e.clientY };
-        };
-
-        const onMouseLeave = () => {
-            mouseRef.current = null;
-        };
-
+        const onMouseMove = (e: MouseEvent) => { mouseRef.current = { x: e.clientX, y: e.clientY }; };
+        const onMouseLeave = () => { mouseRef.current = null; };
         window.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseleave', onMouseLeave);
 
@@ -110,24 +86,20 @@ export default function ProfilePage() {
             window.removeEventListener('resize', resize);
             window.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseleave', onMouseLeave);
-            ekgObserver.disconnect();
         };
     }, []);
 
     useEffect(() => {
-        if (!ekgDims.W || !ekgDims.H || !particleDims.W || !particleDims.H) return;
+        if (!particleDims.W || !particleDims.H) return;
 
         let animFrame: number;
-
         function loop() {
             drawParticles();
-            drawEKG();
             animFrame = requestAnimationFrame(loop);
         }
-
         animFrame = requestAnimationFrame(loop);
         return () => cancelAnimationFrame(animFrame);
-    }, [ekgDims, particleDims, drawParticles, drawEKG]);
+    }, [particleDims, drawParticles]);
 
     useEffect(() => {
         let ignore = false;
@@ -248,6 +220,11 @@ export default function ProfilePage() {
             return;
         }
 
+        if (editForm.password && editForm.password !== editForm.confirmPassword) {
+            alert('Passwords do not match');
+            return;
+        }
+
         setSaving(true);
         try {
             const res = await UserProfileAPIService.updateProfile(token, {
@@ -302,8 +279,7 @@ export default function ProfilePage() {
         return (
             <div ref={pageRef} className="relative overflow-hidden min-h-screen bg-surface-base">
                 <canvas ref={pCanvasRef} className="fixed top-0 left-0 w-full pointer-events-none" style={{ zIndex: 0, height: '100vh' }} />
-                <div ref={ekgWrapRef} className="relative min-h-screen">
-                    <canvas ref={eCanvasRef} className="absolute top-0 left-0 w-full pointer-events-none" style={{ zIndex: 0, height: '100%' }} />
+                <div className="relative min-h-screen" style={{ zIndex: 2 }}>
                     <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
                         <div className="h-48 bg-surface-hover rounded-xl animate-pulse mb-6" />
                         <div className="h-64 bg-surface-hover rounded-xl animate-pulse" />
@@ -317,8 +293,7 @@ export default function ProfilePage() {
         return (
             <div ref={pageRef} className="relative overflow-hidden min-h-screen bg-surface-base">
                 <canvas ref={pCanvasRef} className="fixed top-0 left-0 w-full pointer-events-none" style={{ zIndex: 0, height: '100vh' }} />
-                <div ref={ekgWrapRef} className="relative min-h-screen">
-                    <canvas ref={eCanvasRef} className="absolute top-0 left-0 w-full pointer-events-none" style={{ zIndex: 0, height: '100%' }} />
+                <div className="relative min-h-screen" style={{ zIndex: 2 }}>
                     <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
                         <div className="text-center py-12 rounded-xl" style={{
                             background: 'linear-gradient(135deg, #0a0a14 0%, #08080e 100%)',
@@ -356,14 +331,7 @@ export default function ProfilePage() {
                 style={{ zIndex: 0, height: '100vh' }}
             />
 
-            {/* EKG BACKGROUND */}
-            <canvas
-                ref={eCanvasRef}
-                className="fixed top-0 left-0 w-full pointer-events-none"
-                style={{ zIndex: 1, height: '100%' }}
-            />
-
-            <div ref={ekgWrapRef} className="relative min-h-screen" style={{ zIndex: 2 }}>
+            <div className="relative min-h-screen" style={{ zIndex: 2 }}>
                 <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
 
                     {/* Back button + Edit */}
@@ -525,9 +493,9 @@ export default function ProfilePage() {
                                 )}
                             </div>
 
-                            <div>
-                                <h3 className="text-sm text-muted-ghost mb-1">Confirm New Password</h3>
-                                {isEditing && isOwnProfile ? (
+                            {isEditing && isOwnProfile && (
+                                <div>
+                                    <h3 className="text-sm text-muted-ghost mb-1">Confirm New Password</h3>
                                     <input
                                         type="password"
                                         name="confirmPassword"
@@ -536,10 +504,8 @@ export default function ProfilePage() {
                                         placeholder="Repeat new password"
                                         className="w-full bg-surface-base border border-border-subtle rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-pulse"
                                     />
-                                ) : (
-                                    <p className="text-white">••••••••</p>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -670,7 +636,7 @@ export default function ProfilePage() {
                                         ))}
                                     </div>
                                 )
-                            ) : (
+                            ) : activeTab === 'comments' ? (
                                 userComments.length === 0 ? (
                                     <div className="text-center py-10">
                                         <MessageSquare size={32} className="mx-auto text-muted-ghost mb-2 opacity-40" />
@@ -698,7 +664,7 @@ export default function ProfilePage() {
                                                     <span className="text-xs text-muted-ghost">
                                                         ♥ {comment.likesCount}
                                                     </span>
-                                                    <span className="text-xs text-pulse/60 text-xs">
+                                                    <span className="text-xs text-pulse/60">
                                                         → view post
                                                     </span>
                                                 </div>
@@ -706,9 +672,9 @@ export default function ProfilePage() {
                                         ))}
                                     </div>
                                 )
-                            )} : (
+                            ) : (
                                 <UserTagCloud posts={userPosts} />
-                            )
+                            )}
                         </div>
                     </div>
                     {}
