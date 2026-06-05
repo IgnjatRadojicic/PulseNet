@@ -22,9 +22,11 @@ export default function FeedPage() {
             setLoading(true);
             setError('');
 
-            const postData = user
-                ? await postApi.getFeed()
-                : await postApi.getPublicPosts();
+            const [postData, communityData] = await Promise.all([
+                user ? postApi.getFeed() : postApi.getPublicPosts(),
+                user ? communityApi.getMine() : Promise.resolve(null),
+            ]);
+
 
             if (ignore) return;
 
@@ -34,14 +36,11 @@ export default function FeedPage() {
                 setError(postData.message || 'Failed to load posts');
             }
 
-            if (user) {
-                const communityData = await communityApi.getMine();
-                if (!ignore && communityData.success && communityData.data) {
-                    setCommunities(communityData.data.map(c => ({ id: c.id, name: c.name })));
-                }
+            if (communityData?.success && communityData.data) {
+                setCommunities(communityData.data.map(c => ({ id: c.id, name: c.name })));                
             }
 
-            if (!ignore) setLoading(false);
+           setLoading(false);
         }
 
         load();
@@ -75,7 +74,7 @@ export default function FeedPage() {
                     >
                         <p>{error}</p>
                         <button
-                            onClick={() => window.location.reload()}
+                            onClick={() => setRetryCount(c => c + 1)}
                             className="mt-3 text-xs text-pulse hover:underline"
                             style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                         >

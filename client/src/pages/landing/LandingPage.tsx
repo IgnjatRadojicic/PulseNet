@@ -116,37 +116,37 @@ export default function LandingPage() {
                 </div>
 
                 <LandingFooter />
-{/* Scroll progress line */}
-<div
-    className="fixed bottom-0 left-0 w-full z-50 pointer-events-none"
-    style={{ height: '2px', background: 'rgba(108,99,255,0.12)' }}
->
-    <div
-        ref={progressBarRef}
-        className="absolute top-0 left-0 h-full"
-        style={{ width: '0%', background: 'linear-gradient(to right, rgba(108,99,255,0.5), #6c63ff)' }}
-    />
-    <div
-        ref={progressGlowRef}
-        className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-pulse scroll-indicator-glow"
-        style={{ left: '-6px' }}
-    />
-</div>
+        {/* Scroll progress line */}
+        <div
+            className="fixed bottom-0 left-0 w-full z-50 pointer-events-none"
+            style={{ height: '2px', background: 'rgba(108,99,255,0.12)' }}
+        >
+            <div
+                ref={progressBarRef}
+                className="absolute top-0 left-0 h-full"
+                style={{ width: '0%', background: 'linear-gradient(to right, rgba(108,99,255,0.5), #6c63ff)' }}
+            />
+            <div
+                ref={progressGlowRef}
+                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-pulse scroll-indicator-glow"
+                style={{ left: '-6px' }}
+            />
+        </div>
 
-{/* Scroll indicator / back to top */}
-<div
-    className={`scroll-indicator-arrow${scrolled ? ' scrolled' : ''}`}
-    onClick={scrolled ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : undefined}
->
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path
-            d={scrolled ? 'M4 13l6-6 6 6' : 'M4 7l6 6 6-6'}
-            stroke="#6c63ff"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        />
-    </svg>
+        {/* Scroll indicator / back to top */}
+        <div
+            className={`scroll-indicator-arrow${scrolled ? ' scrolled' : ''}`}
+            onClick={scrolled ? () => window.scrollTo({ top: 0, behavior: 'smooth' }) : undefined}
+        >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path
+                    d={scrolled ? 'M4 13l6-6 6 6' : 'M4 7l6 6 6-6'}
+                    stroke="#6c63ff"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+            </svg>
 </div>                
             </div>
         </div>
