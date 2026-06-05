@@ -41,7 +41,8 @@ export function useComments({ postId, token }: UseCommentsOptions) {
                 const rootComments = allComments.filter(c => !c.parentId);
                 
                 setComments(rootComments);
-                setTotalComments(rootComments.length);
+                const total = allComments.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0);
+                setTotalComments(total);
             } else {
                 setError(res.message ?? 'Failed to load comments.');
                 setComments([]);
@@ -120,7 +121,7 @@ export function useComments({ postId, token }: UseCommentsOptions) {
         setComments(prev => prev.map(comment => {
             if (comment.id !== id) return comment;
             
-            const currentLikes = comment._likeCount ?? comment.likesCount ?? comment.likes_count ?? 0;
+            const currentLikes = comment._likeCount ?? comment.likesCount ?? 0;
             const newLikes = isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1;
             
             return {

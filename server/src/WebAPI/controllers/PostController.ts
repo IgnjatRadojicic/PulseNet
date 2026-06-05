@@ -18,7 +18,7 @@ export class PostController {
         this.router.get('/posts/public', optionalAuthenticate, this.getPublicPosts.bind(this));
         this.router.get('/posts/feed', authenticate, this.getFeed.bind(this));
         this.router.get('/posts/community/:communityId', this.getByCommunity.bind(this));
-        this.router.get('/posts/:id', this.getById.bind(this));
+        this.router.get('/posts/:id', optionalAuthenticate, this.getById.bind(this));
         this.router.post('/posts', authenticate, this.create.bind(this));
         this.router.put('/posts/:id', authenticate, this.update.bind(this));
         this.router.delete('/posts/:id', authenticate, this.delete.bind(this));

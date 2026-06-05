@@ -22,13 +22,17 @@ export default function FeedPage() {
             setLoading(true);
             setError('');
 
-            const [postData, communityData] = await Promise.all([
+            const [feedData, communityData] = await Promise.all([
                 user ? postApi.getFeed() : postApi.getPublicPosts(),
                 user ? communityApi.getMine() : Promise.resolve(null),
             ]);
 
-
             if (ignore) return;
+
+            let postData = feedData;
+            if (user && feedData.success && (feedData.data?.length ?? 0) === 0) {
+                postData = await postApi.getPublicPosts();
+            }
 
             if (postData.success) {
                 setPosts(postData.data ?? []);
