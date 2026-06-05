@@ -10,6 +10,11 @@
 
 A Reddit-inspired community platform where users can create communities, write posts with rich BBCode formatting, leave nested comments, like content, and follow each other - all backed by a clean-architecture Express API with full JWT authentication, role-based moderation, and a PostgreSQL database hosted on Aiven cloud.
 
+<img width="800" height="450" alt="2026-06-0522-29-08-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/6bfe707c-149c-481d-8d0e-2bc3da459705" />
+<img width="800" height="450" alt="2026-06-05 22-30-04" src="https://github.com/user-attachments/assets/f921d3da-c918-4579-8d39-1cd89c27ca21" />
+
+
+
 ---
 
 ## What Is PulseNet?
