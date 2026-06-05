@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { getHealthStatus, getReadConnection, getWriteConnection } from '../../Database/connection/DbConnectionPool';
+import { getHealthStatus, getReadConnection, getWriteConnection, promoteSlaveToMaster } from '../../Database/connection/DbConnectionPool';
 import { authenticate } from '../../Middlewares/authentification/AuthMiddleware';
 import { authorize } from '../../Middlewares/authorization/AuthorizeMiddleware';
 import { UserRole } from '../../Domain/enums/UserRole';
@@ -20,6 +20,7 @@ export class HealthController {
     private initializeRoutes(): void {
         this.router.get('/health', this.healthCheck.bind(this));
         this.router.get('/health/db', authenticate, authorize(UserRole.Admin), this.dbHealth.bind(this));
+        this.router.post('/health/failover', authenticate, authorize(UserRole.Admin), this.triggerFailover.bind(this));
     }
 
     private healthCheck(req: Request, res: Response): void {
@@ -64,6 +65,24 @@ export class HealthController {
         } catch {
             const result = { success: false, message: 'Failed to retrieve DB health status', errorCode: ErrorCode.INTERNAL_ERROR };
             sendServiceResult(res, result);
+        }
+    }
+
+    private triggerFailover(req: Request, res: Response): void {
+        try {
+            const { slaveId } = req.body;
+            if (typeof slaveId !== 'number' || isNaN(slaveId)) {
+                res.status(400).json({ success: false, message: 'Invalid slave ID' });
+                return;
+            }
+            const result = promoteSlaveToMaster(slaveId);
+            if (!result.success) {
+                res.status(400).json({ success: false, message: result.message ?? 'Failover failed' });
+                return;
+            }
+            res.status(200).json({ success: true, data: { message: result.data ?? `Failover to slave index ${slaveId} triggered` } });
+        } catch {
+            res.status(500).json({ success: false, message: 'Failed to trigger failover' });
         }
     }
 
