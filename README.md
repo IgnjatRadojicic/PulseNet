@@ -701,7 +701,3 @@ This was my first time being the person other developers depended on, and it was
 **You cannot lead and also be heads-down in code at the same time : at first.** I tried to be writing features and reviewing PRs and answering questions simultaneously, and it didn't work well. I was always context-switching at the worst possible moment. What actually worked better was batching: do reviews in the morning, write code in long uninterrupted blocks during the day, answer questions at natural transition points. Protecting deep work time is not selfish : it is how you produce the quality that the team depends on.
 
 ---
-
-## GitHub Description
-
-> Reddit-inspired community platform - Clean Architecture Express API, BBCode posts with XSS protection, nested comments, JWT + refresh token auth, role-based moderation, and optimistic UI updates. Built with React 19, TypeScript, and PostgreSQL.
