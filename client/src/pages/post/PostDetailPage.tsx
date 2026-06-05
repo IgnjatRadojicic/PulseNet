@@ -83,7 +83,7 @@ export default function PostDetailPage() {
   }, [postId, user]);
 
   async function handlePostLike() {
-    if (!user || likeLoading) return;
+    if (!canLike || likeLoading) return;
     setLikeLoading(true);
     try {
       const res = liked ? await postApi.unlike(postId) : await postApi.like(postId);
@@ -138,6 +138,7 @@ export default function PostDetailPage() {
 
   const isAuthor = user?.id === post.authorId;
   const isAdmin = user?.role === 'admin';
+  const canLike = !!user && !isAuthor;
 
   return (
     <AppLayout communities={myCommunities}>
@@ -253,12 +254,12 @@ export default function PostDetailPage() {
           >
             <button
               onClick={handlePostLike}
-              disabled={!user || likeLoading}
+              disabled={!canLike || likeLoading}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
               style={{
                 background: 'none',
                 border: 'none',
-                cursor: user ? 'pointer' : 'default',
+                cursor: canLike ? 'pointer' : 'default',
                 color: liked ? 'var(--color-pulse, #6c63ff)' : 'rgba(255,255,255,0.45)',
               }}
             >

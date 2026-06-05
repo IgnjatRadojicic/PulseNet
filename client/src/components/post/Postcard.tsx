@@ -46,8 +46,10 @@ export default function PostCard(props: PostCardProps) {
     const [likeCount, setLikeCount] = useState(props.likeCount);
     const [likeLoading, setLikeLoading] = useState(false);
 
+    const isOwnPost = user?.id === props.authorId;
+
     async function handleLike() {
-        if (!user || likeLoading) return;
+        if (!user || likeLoading || isOwnPost) return;
 
         setLikeLoading(true);
         try {
@@ -156,12 +158,12 @@ export default function PostCard(props: PostCardProps) {
                 {/* Like */}
                 <button
                     onClick={handleLike}
-                    disabled={!user || likeLoading}
+                    disabled={!user || likeLoading || isOwnPost}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
                     style={{
                         background: 'none',
                         border: 'none',
-                        cursor: user ? 'pointer' : 'default',
+                        cursor: user && !isOwnPost ? 'pointer' : 'default',
                         color: liked ? 'var(--color-pulse, #6366f1)' : 'rgba(255,255,255,0.45)',
                     }}
                 >
