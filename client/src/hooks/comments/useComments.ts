@@ -138,17 +138,31 @@ export function useComments({ postId, token }: UseCommentsOptions) {
             if (pendingLikesRef.current.has(id)) return;
             pendingLikesRef.current.add(id);
             
+            const revertLike = () => {
+                setComments(prev => prev.map(comment => {
+                    if (comment.id !== id) return comment;
+                    const current = comment._likeCount ?? comment.likesCount ?? 0;
+                    return {
+                        ...comment,
+                        _likeCount: isCurrentlyLiked ? current + 1 : current - 1,
+                        likesCount: isCurrentlyLiked ? current + 1 : current - 1,
+                        isLiked: isCurrentlyLiked,
+                        _optimisticLike: false,
+                    };
+                }));
+            };
+
             try {
                 const res = isCurrentlyLiked
                     ? await CommentAPIService.unlikeComment(token, id)
                     : await CommentAPIService.likeComment(token, id);
-                
+
                 if (!res.success) {
-                    await fetchComments();
+                    revertLike();
                 }
             } catch (error) {
                 console.error('💥 [toggleLike] Error:', error);
-                await fetchComments();
+                revertLike();
             } finally {
                 pendingLikesRef.current.delete(id);
             }
@@ -159,7 +173,7 @@ export function useComments({ postId, token }: UseCommentsOptions) {
         }, 300);
         
         return () => clearTimeout(timeoutId);
-    }, [token, fetchComments]);
+    }, [token]);
 
     const loadMore = useCallback(() => {}, []);
 
