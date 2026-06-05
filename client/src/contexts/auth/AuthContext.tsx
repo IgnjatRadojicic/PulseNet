@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 headers: {'Authorization': `Bearer ${authToken}`},
             });
             const data = await res.json();
-            if (data.success & data.data) {
+            if (data.success && data.data) {
                 return data.data.profileImage ?? null;
             }
             return null;

@@ -3,10 +3,6 @@ import { useNavigate } from 'react-router-dom';
 export default function LandingFooter() {
     const navigate = useNavigate();
 
-    const scrollToTop = () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
     return (
         <footer style={{ background: '#040508' }}>
             {/* Main grid */}
@@ -25,7 +21,7 @@ export default function LandingFooter() {
                             forums with real-time discussion.
                         </p>
                         <div className="flex gap-1.5 flex-wrap">
-                            {['Node.js', 'Express', 'MySQL', 'React'].map((tech) => (
+                            {['Node.js', 'Express', 'PostgreSQL', 'React'].map((tech) => (
                                 <span
                                     key={tech}
                                     className="text-[9px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-full font-normal"
@@ -134,30 +130,6 @@ export default function LandingFooter() {
                     &copy; {new Date().getFullYear()} PulseNet. All rights reserved.
                 </p>
 
-                <button
-                    onClick={scrollToTop}
-                    className="group w-8 h-8 rounded-full flex items-center justify-center cursor-pointer border-none transition-colors duration-300"
-                    style={{ background: 'rgba(108,99,255,0.12)' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(108,99,255,0.22)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(108,99,255,0.12)'; }}
-                    aria-label="Back to top"
-                >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                        className="transition-transform duration-300 group-hover:-translate-y-0.5"
-                    >
-                        <path
-                            d="M7 11V3M7 3L3.5 6.5M7 3L10.5 6.5"
-                            stroke="rgba(108,99,255,0.75)"
-                            strokeWidth="1.3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    </svg>
-                </button>
             </div>
         </footer>
     );

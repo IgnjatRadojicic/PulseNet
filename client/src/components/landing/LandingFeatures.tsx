@@ -1,6 +1,8 @@
+import { useScrollReveal } from '../../hooks/other/useScrollReveal';
 export default function LandingFeatures() {
+    const ref = useScrollReveal<HTMLElement>();
     return (
-        <section id="features" className="px-6 md:px-16 pb-14 md:pb-16">
+        <section ref={ref} id="features" className="px-6 md:px-16 pb-14 md:pb-16">
             {/* Section heading */}
             <p
                 className="text-[10px] tracking-[0.15em] uppercase mb-3.5 font-normal"

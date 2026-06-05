@@ -1,7 +1,11 @@
+import { useScrollReveal } from '../../hooks/other/useScrollReveal';
+
 export default function LandingStats() {
+    const ref = useScrollReveal<HTMLElement>();
     return (
-        <section className="px-6 md:px-16 py-14 md:py-16">
+        <section ref={ref} className="px-6 md:px-16 py-14 md:py-16">
             {/* Hero stat big number + description */}
+            
             <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-12 mb-14 md:mb-16">
                 <div className="shrink-0">
                     <span

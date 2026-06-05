@@ -44,7 +44,7 @@ export default function LandingCTA() {
 
             {user ? (
                 <>
-                    <h2 className="font-display text-section leading-none tracking-display text-white font-extrabold mb-6">
+                    <h2 className="font-syne text-section leading-none tracking-display text-white font-extrabold mb-6">
                         Welcome back,<br />{user.username}!
                     </h2>
                     <p

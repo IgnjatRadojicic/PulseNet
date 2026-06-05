@@ -1,3 +1,4 @@
+
 const roles = [
     {
         label: 'Guest',
@@ -19,9 +20,12 @@ const roles = [
     },
 ];
 
+import { useScrollReveal } from '../../hooks/other/useScrollReveal';
+
 export default function LandingRoles() {
+    const ref = useScrollReveal<HTMLElement>();
     return (
-        <section id="roles" className="px-6 md:px-16 py-14 md:py-16">
+        <section ref={ref} id="roles" className="px-6 md:px-16 py-14 md:py-16">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
                 {/* Left heading */}
                 <div>
@@ -31,7 +35,8 @@ export default function LandingRoles() {
                     >
                         Access control
                     </p>
-                    <h2 className="font-syne text-white font-black text-[60px] leading-[1.15] tracking-tight mb-3.5">
+                    <h2 className="font-syne text-white font-black leading-[1.15] tracking-tight mb-3.5"
+                        style={{ fontSize: 'clamp(2rem, 5vw, 3.75rem)' }}>
                         Three levels of access,<br />one platform
                     </h2>
                     <p

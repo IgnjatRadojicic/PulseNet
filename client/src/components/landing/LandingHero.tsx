@@ -8,17 +8,18 @@ export default function LandingHero() {
     return (
         <section className="px-6 md:px-16 pt-16 md:pt-24 pb-12 md:pb-16 max-w-4xl">
             <p
-                className="text-xs tracking-mega uppercase mb-6 font-normal"
-                style={{ color: 'rgba(108,99,255,0.8)' }}
+                className="hero-animate text-xs tracking-mega uppercase mb-6 font-normal"
+                style={{ color: 'rgba(108,99,255,0.8)', animationDelay: '0.1s' }}
             >
                 Distributed social infrastructure
             </p>
             <h1
-                className="font-syne text-white font-black mb-6"
+                className="hero-animate font-syne text-white font-black mb-6"
                 style={{
                     fontSize: 'clamp(2.2rem, 6vw, 5.5rem)',
                     lineHeight: '0.95',
                     letterSpacing: '-0.03em',
+                    animationDelay: '0.25s',
                 }}
             >
                 Where{' '}
@@ -34,14 +35,14 @@ export default function LandingHero() {
                 </span>
             </h1>
             <p
-                className="text-base md:text-lg font-light leading-relaxed mb-10 md:mb-12 max-w-xl"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
+                className="hero-animate text-base md:text-lg font-light leading-relaxed mb-10 md:mb-12 max-w-xl"
+                style={{ color: 'rgba(255,255,255,0.4)', animationDelay: '0.4s' }}
             >
                 PulseNet is a distributed social networking platform combining the depth of community forums
                 with the immediacy of real-time discussion. Built on a master-slave replicated database
                 architecture with automatic failover.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 items-start sm:items-center">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 items-start sm:items-center " style={{ animationDelay: '0.55s' }}>
                 {user ? (
                     <button
                         onClick={() => navigate('/feed')}
